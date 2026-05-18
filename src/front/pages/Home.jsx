@@ -1,52 +1,42 @@
-import React, { useEffect } from "react"
-import rigoImageUrl from "../assets/img/rigo-baby.jpg";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import heroImage from "../assets/img/hero-bg.jpg";
 
 export const Home = () => {
+  return (
+    <main className="home">
 
-	const { store, dispatch } = useGlobalReducer()
+      <section className="hero"
+        style={{
+  backgroundImage: `url(${heroImage})`,
+}}>
+<div className="hero-overlay"></div>
 
-	const loadMessage = async () => {
-		try {
-			const backendUrl = import.meta.env.VITE_BACKEND_URL
+        <div className="hero-content">
 
-			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
+          <h1>
+            Descubre spots increíbles
+            <span> cerca de ti.</span>
+          </h1>
 
-			const response = await fetch(backendUrl + "/api/hello")
-			const data = await response.json()
+          <p>
+            Explora lugares únicos, comparte experiencias y conecta con personas que aman descubrir nuevos spots igual que tú.
+          </p>
 
-			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
+          <div className="hero-buttons">
 
-			return data
+            <button className="primary-button">
+              Explorar mapa
+            </button>
 
-		} catch (error) {
-			if (error.message) throw new Error(
-				`Could not fetch the message from the backend.
-				Please check if the backend is running and the backend port is public.`
-			);
-		}
+            <button className="secondary-button">
+              Crear Spot
+            </button>
 
-	}
+          </div>
 
-	useEffect(() => {
-		loadMessage()
-	}, [])
+        </div>
 
-	return (
-		<div className="text-center mt-5">
-			<h1 className="display-4">Hello Rigo!!</h1>
-			<p className="lead">
-				<img src={rigoImageUrl} className="img-fluid rounded-circle mb-3" alt="Rigo Baby" />
-			</p>
-			<div className="alert alert-info">
-				{store.message ? (
-					<span>{store.message}</span>
-				) : (
-					<span className="text-danger">
-						Loading message from the backend (make sure your python 🐍 backend is running)...
-					</span>
-				)}
-			</div>
-		</div>
-	);
-}; 
+
+      </section>
+    </main>
+  );
+};
