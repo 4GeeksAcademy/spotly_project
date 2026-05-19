@@ -1,19 +1,33 @@
 import { Link } from "react-router-dom";
+import logo from "../assets/img/spotlylogo-wbg.png";
 
 export const Navbar = () => {
+  return (
+    <nav className="navbar">
 
-	return (
-		<nav className="navbar navbar-light bg-light">
-			<div className="container">
-				<Link to="/">
-					<span className="navbar-brand mb-0 h1">React Boilerplate</span>
-				</Link>
-				<div className="ml-auto">
-					<Link to="/demo">
-						<button className="btn btn-primary">Check the Context in action</button>
-					</Link>
-				</div>
-			</div>
-		</nav>
-	);
+      <Link to="/" className="nav-logo">
+        <img src={logo} alt="Spotly Logo" />
+      </Link>
+
+      <div className="nav-links">
+        <Link to="/">Explorar</Link>
+        <Link to="/">Categorías</Link>
+        <Link to="/">Colecciones</Link>
+        <Link to="/">Cómo funciona</Link>
+      </div>
+
+      <div className="nav-auth">
+
+        <Link to="/login" className="login-link">
+          Iniciar sesión
+        </Link>
+
+        <Link to="/register" className="register-button">
+          Regístrate
+        </Link>
+
+      </div>
+
+    </nav>
+  );
 };
