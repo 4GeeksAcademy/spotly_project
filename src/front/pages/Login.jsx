@@ -1,50 +1,66 @@
-export const Login = () => {
+export const Login = ({ mode, setAuthMode }) => {
   return (
-
     <div className="bg-light min-vh-100 d-flex justify-content-center align-items-center">
 
       <div className="card shadow p-4 border-0 rounded-4" style={{ width: "380px" }}>
 
         <h2 className="text-center mb-4 text-danger">
-          Welcome Back
+          {mode === "login" ? "Iniciar Sesión" : "Registro"}
         </h2>
 
-        {/* USER */}
-        <div className="mb-3">
-          <label className="form-label">Usuario</label>
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Ingrese usuario"
-          />
-        </div>
+        {/* LOGIN */}
+        {mode === "login" && (
+          <>
+            <div className="mb-3">
+              <label>Usuario</label>
+              <input type="text" className="form-control" />
+            </div>
 
-        {/* EMAIL */}
-        <div className="mb-3">
-          <label className="form-label">Email</label>
-          <input
-            type="email"
-            className="form-control"
-            placeholder="Ingrese email"
-          />
-        </div>
+            <div className="mb-3">
+              <label>Contraseña</label>
+              <input type="password" className="form-control" />
+            </div>
+          </>
+        )}
 
-        {/* PASSWORD */}
-        <div className="mb-4">
-          <label className="form-label">Contraseña</label>
-          <input
-            type="password"
-            className="form-control"
-            placeholder="Ingrese contraseña"
-          />
-        </div>
+        {/* REGISTER */}
+        {mode === "register" && (
+          <>
+            <div className="mb-3">
+              <label>Nombre</label>
+              <input type="text" className="form-control" />
+            </div>
+
+            <div className="mb-3">
+              <label>Apellido</label>
+              <input type="text" className="form-control" />
+            </div>
+
+            <div className="mb-3">
+              <label>Email</label>
+              <input type="email" className="form-control" />
+            </div>
+
+            <div className="mb-3">
+              <label>Contraseña</label>
+              <input type="password" className="form-control" />
+            </div>
+          </>
+        )}
 
         <button className="btn btn-danger w-100">
-          Log In
+          {mode === "login" ? "Entrar" : "Crear cuenta"}
+        </button>
+
+        {/* cerrar modal */}
+        <button
+          className="btn btn-link w-100 mt-2"
+          onClick={() => setAuthMode(null)}
+        >
+          Cerrar
         </button>
 
       </div>
-
     </div>
   );
 };

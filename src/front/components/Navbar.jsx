@@ -1,30 +1,28 @@
 import { Link } from "react-router-dom";
 import logo from "../assets/img/spotlylogo-wbg.png";
-
-export const Navbar = () => {
+export const Navbar = ({ setAuthMode }) => {
   return (
     <nav className="navbar">
 
-      <Link to="/" className="nav-logo">
-        <img src={logo} alt="Spotly Logo" />
-      </Link>
-
-      <div className="nav-links">
-        <Link to="/">Explorar</Link>
-        <Link to="/">Categorías</Link>
-        <Link to="/">Colecciones</Link>
-        <Link to="/">Cómo funciona</Link>
+      <div className="nav-logo">
+        <img src="/logo.png" alt="Spotly Logo" />
       </div>
 
       <div className="nav-auth">
 
-        <Link to="/login" className="login-link">
+        <button
+          className="login-link"
+          onClick={() => setAuthMode("login")}
+        >
           Iniciar sesión
-        </Link>
+        </button>
 
-        <Link to="/register" className="register-button">
+        <button
+          className="register-button"
+          onClick={() => setAuthMode("register")}
+        >
           Regístrate
-        </Link>
+        </button>
 
       </div>
 
