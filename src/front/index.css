@@ -101,9 +101,6 @@ a {
   border-radius: 999px;
   font-size: 14px;
   font-weight: 700;
-  box-shadow:
-    0 8px 20px rgba(255, 90, 95, 0.18),
-    0 2px 8px rgba(0,0,0,0.06);
 }
 
 .register-button:hover {
@@ -208,5 +205,22 @@ a {
 
   border: 1px solid #e5e7eb;
 
-  color: #111111;
+}
+.logout-button {
+  border: none;
+  outline: none;
+  background: #ff5a5f;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+  font-weight: 700;
+}
+
+.logout-button:hover {
+  opacity: 0.9;
+  
+  
 }
