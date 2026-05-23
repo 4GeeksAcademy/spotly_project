@@ -1,14 +1,16 @@
 import heroImage from "../assets/img/hero-bg.jpg";
+import { useNavigate } from "react-router-dom";
 
 export const Home = () => {
+  const navigate = useNavigate();
   return (
     <main className="home">
 
       <section className="hero"
         style={{
-  backgroundImage: `url(${heroImage})`,
-}}>
-<div className="hero-overlay"></div>
+          backgroundImage: `url(${heroImage})`,
+        }}>
+        <div className="hero-overlay"></div>
 
         <div className="hero-content">
 
@@ -27,7 +29,8 @@ export const Home = () => {
               Explorar mapa
             </button>
 
-            <button className="secondary-button">
+            <button className="secondary-button"
+              onClick={() => navigate("/crear-spot")}>
               Crear Spot
             </button>
 

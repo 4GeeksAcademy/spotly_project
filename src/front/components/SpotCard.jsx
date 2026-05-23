@@ -1,8 +1,9 @@
+import { useNavigate } from "react-router-dom";
 export const SpotCard = ({ image, title, location, category, rating }) => {
   return (
     <div className="spot-card">
       <div className="spot-image">
-        <img src={image} alt={title} />
+        <img src={<SpotPage />} alt={title} />
       </div>
 
       <div className="spot-content">
