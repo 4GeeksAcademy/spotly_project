@@ -5,7 +5,11 @@ import {
   Popup,
 } from "react-leaflet";
 
+import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+
 import { useEffect, useState } from "react";
+
+
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -25,7 +29,27 @@ L.Icon.Default.mergeOptions({
 
 export const SpotPage = () => {
 
+  const { store, dispatch } = useGlobalReducer();
+
   const [userPosition, setUserPosition] = useState(null);
+
+  const [myImage, setMyImage] = useState(null);
+
+  const uploadImage = async (e) => {
+    console.log(e.target.files[0]);
+    const formData = new FormData()
+
+    formData.append("image", e.target.files[0])
+
+    const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/upload", {
+      method: "POST",
+      body: formData
+    })
+    const data = await response.json()
+    setMyImage(data)
+    console.log(data);
+
+  }
 
   useEffect(() => {
     const watcher = navigator.geolocation.watchPosition(
@@ -107,8 +131,10 @@ export const SpotPage = () => {
 
             <input
               type="file"
+              onChange={uploadImage}
               className="mt-2 block w-full text-sm text-gray-600"
             />
+            <img src={myImage} alt="imagen cargada por el usuario" />
           </label>
 
           <button
