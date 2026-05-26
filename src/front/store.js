@@ -1,38 +1,44 @@
-export const initialStore=()=>{
-  return{
-    message: null,
-    todos: [
-      {
-        id: 1,
-        title: "Make the bed",
-        background: null,
-      },
-      {
-        id: 2,
-        title: "Do my homework",
-        background: null,
-      }
-    ]
-  }
-}
+// src/front/store.js
+
+export const initialStore = () => {
+	return {
+		message: null,
+		user: null,
+		token: localStorage.getItem("token") || null
+	};
+};
 
 export default function storeReducer(store, action = {}) {
-  switch(action.type){
-    case 'set_hello':
-      return {
-        ...store,
-        message: action.payload
-      };
-      
-    case 'add_task':
+	switch(action.type){
 
-      const { id,  color } = action.payload
+		case 'login':
 
-      return {
-        ...store,
-        todos: store.todos.map((todo) => (todo.id === id ? { ...todo, background: color } : todo))
-      };
-    default:
-      throw Error('Unknown action.');
-  }    
+			localStorage.setItem("token", action.payload.token);
+
+			return {
+				...store,
+				token: action.payload.token,
+				user: action.payload.user
+			};
+
+		case 'logout':
+
+			localStorage.removeItem("token");
+
+			return {
+				...store,
+				token: null,
+				user: null
+			};
+
+		case 'set_user':
+
+			return {
+				...store,
+				user: action.payload
+			};
+
+		default:
+			throw Error('Unknown action.');
+	}
 }
