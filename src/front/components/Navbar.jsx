@@ -23,9 +23,9 @@ export const Navbar = () => {
             </Link>
 
             <div className="nav-links">
-                <Link to="/">Explorar</Link>
-                <Link to="/">Categorías</Link>
-                <Link to="/">Colecciones</Link>
+                <Link to="/">Explore</Link>
+                <Link to="/">Categories</Link>
+                <Link to="/">Collections</Link>
             </div>
 
             <div className="nav-auth">
@@ -46,14 +46,14 @@ export const Navbar = () => {
                             to="/login"
                             className="login-link"
                         >
-                            Iniciar sesión
+                            Login
                         </Link>
 
                         <Link
                             to="/register"
                             className="register-button"
                         >
-                            Regístrate
+                            Sign up
                         </Link>
                     </>
                 )}
