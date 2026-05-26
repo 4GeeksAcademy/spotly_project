@@ -33,23 +33,26 @@ export const SpotPage = () => {
 
   const [userPosition, setUserPosition] = useState(null);
 
-  const [myImage, setMyImage] = useState(null);
+  const [myImages, setMyImages] = useState([]);
 
-  const uploadImage = async (e) => {
-    console.log(e.target.files[0]);
-    const formData = new FormData()
+  const uploadImages = async (e) => {
+    const files = Array.from(e.target.files);
+    const uploadedUrls = [];
 
-    formData.append("image", e.target.files[0])
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("image", file);
 
-    const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/upload", {
-      method: "POST",
-      body: formData
-    })
-    const data = await response.json()
-    setMyImage(data)
-    console.log(data);
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/upload", {
+        method: "POST",
+        body: formData
+      })
+      const data = await response.json();
+      uploadedUrls.push(data);
+    }
+    setMyImages((prev) => [...prev, ...uploadedUrls]);
+  };
 
-  }
 
   useEffect(() => {
     const watcher = navigator.geolocation.watchPosition(
@@ -126,15 +129,27 @@ export const SpotPage = () => {
 
           <label className="block">
             <span className="text-sm text-gray-600">
-              Subir foto
+              Subir fotos
             </span>
 
             <input
               type="file"
-              onChange={uploadImage}
+              multiple
+              onChange={uploadImages}
               className="mt-2 block w-full text-sm text-gray-600"
             />
-            <img src={myImage} alt="imagen cargada por el usuario" />
+            {myImages.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {myImages.map((url, index) => (
+                  <img
+                    key={index}
+                    src={url}
+                    alt={`foto ${index + 1}`}
+                    className="w-24 h-24 object-cover rounded-xl border border-gray-200 shadow-sm"
+                  />
+                ))}
+              </div>
+            )}
           </label>
 
           <button
