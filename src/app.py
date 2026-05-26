@@ -33,7 +33,7 @@ db.init_app(app)
 
 JWTManager(app)
 
-CORS(app, origins=["https://vigilant-space-pancake-rqj7jqj66r4c5r7g-3000.app.github.dev"])
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 app.register_blueprint(api, url_prefix='/api')
 
