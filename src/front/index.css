@@ -670,3 +670,16 @@
 .logout-btn:hover {
   background: #ef3340;
 }
+
+.search-btn {
+  border: none;
+  background: #ef3340;
+  color: white;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.search-btn:hover {
+  background: #d62835;
+}

@@ -1,10 +1,50 @@
 import { MapPin, Heart, MessageCircle, Share2, Bookmark, Search, Bell, User, Home, Compass, Map } from "lucide-react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export const Dashboard = () => {
   const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+
+  const spots = [
+    {
+      user: "Brand Studio",
+      location: "Ciudad de México",
+      time: "2h",
+      text: "Nuevo mural en el corazón de la Roma Norte. Perfecto para fotos y campañas creativas.",
+      category: "Murales",
+      image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800",
+      likes: 128,
+      comments: 24,
+      shares: 12
+    },
+    {
+      user: "Ana López",
+      location: "Guadalajara",
+      time: "4h",
+      text: "Rooftop con vista increíble al atardecer. Ideal para reuniones y eventos privados.",
+      category: "Rooftops",
+      image: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=900",
+      likes: 89,
+      comments: 11,
+      shares: 7
+    }
+  ];
+
+  const filteredSpots = spots.filter((spot) => {
+    const search = activeSearch.toLowerCase();
+
+    return (
+      spot.user.toLowerCase().includes(search) ||
+      spot.location.toLowerCase().includes(search) ||
+      spot.text.toLowerCase().includes(search) ||
+      spot.category.toLowerCase().includes(search)
+    );
+  });
 
   return (
     <div className="spotly-dashboard">
@@ -39,9 +79,26 @@ export const Dashboard = () => {
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-search">
-            <Search size={20} />
-            <input placeholder="Search... " />
-          </div>
+  <Search size={20} />
+
+  <input
+    placeholder="Buscar spots, lugares, usuarios..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") {
+        setActiveSearch(searchTerm);
+      }
+    }}
+  />
+
+  <button
+    className="search-btn"
+    onClick={() => setActiveSearch(searchTerm)}
+  >
+    Buscar
+  </button>
+</div>
 
           <div className="dashboard-user">
             <Bell size={22} />
@@ -70,56 +127,37 @@ export const Dashboard = () => {
         </section>
 
         <section className="feed">
-          <article className="spot-post">
-            <div className="post-header">
-              <img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=100" alt="Brand" />
-              <div>
-                <strong>Hector Arroyo <span className="pro-badge">Pro</span></strong>
-                <p>Mexico City, Mexico · 2h</p>
-              </div>
-            </div>
+  {filteredSpots.length > 0 ? (
+    filteredSpots.map((spot, index) => (
+      <article className="spot-post" key={index}>
+        <div className="post-header">
+          <img src={`https://i.pravatar.cc/100?img=${index + 30}`} alt={spot.user} />
+          <div>
+            <strong>{spot.user}</strong>
+            <p>{spot.location} · {spot.time}</p>
+          </div>
+        </div>
 
-            <p className="post-text">
-              Nuevo mural en el corazón de la Roma Norte. Perfecto para fotos y campañas creativas.
-            </p>
+        <p className="post-text">{spot.text}</p>
 
-            <div className="post-grid">
-              <img className="big-img" src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800" alt="Mural" />
-              <img src="https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=400" alt="Spot" />
-              <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400" alt="Rooftop" />
-            </div>
+        <img className="single-post-img" src={spot.image} alt={spot.category} />
 
-            <div className="post-actions">
-              <span><Heart size={20} /> 128</span>
-              <span><MessageCircle size={20} /> 24</span>
-              <span><Share2 size={20} /> 12</span>
-              <span><Bookmark size={20} /></span>
-            </div>
-          </article>
-
-          <article className="spot-post">
-            <div className="post-header">
-              <img src="https://i.pravatar.cc/100?img=44" alt="Ana" />
-              <div>
-                <strong>Ana López</strong>
-                <p>Madrid, Spain · 4h</p>
-              </div>
-            </div>
-
-            <p className="post-text">
-              Rooftop with an incredible view at sunset. Ideal for private gatherings and events.
-            </p>
-
-            <img className="single-post-img" src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=900" alt="Rooftop" />
-
-            <div className="post-actions">
-              <span><Heart size={20} /> 89</span>
-              <span><MessageCircle size={20} /> 11</span>
-              <span><Share2 size={20} /> 7</span>
-              <span><Bookmark size={20} /></span>
-            </div>
-          </article>
-        </section>
+        <div className="post-actions">
+          <span><Heart size={20} /> {spot.likes}</span>
+          <span><MessageCircle size={20} /> {spot.comments}</span>
+          <span><Share2 size={20} /> {spot.shares}</span>
+          <span><Bookmark size={20} /></span>
+        </div>
+      </article>
+    ))
+  ) : (
+    <div className="spot-post">
+      <p>
+        No se encontraron spots para: <strong>{activeSearch}</strong>
+      </p>
+    </div>
+  )}
+</section>
       </main>
 
       <aside className="dashboard-rightbar">
