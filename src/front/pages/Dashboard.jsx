@@ -55,7 +55,8 @@ export const Dashboard = () => {
 
         <nav className="dashboard-menu">
           <a className="active"><Home size={20} /> Dashboard</a>
-          <a><Compass size={20} /> Explore</a>
+          <a onClick={() => navigate("/explore")}>
+          <Compass size={20} /> Explore</a>
           <a><MapPin size={20} /> Spots</a>
           <a><Bell size={20} /> Notifications</a>
           <a><User size={20} /> Profile</a>

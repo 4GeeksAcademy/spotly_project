@@ -13,7 +13,7 @@ import { SpotPage } from "./pages/SpotPage";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Dashboard } from "./pages/Dashboard.jsx";
-
+import { Explore } from "./pages/Explore.jsx";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -22,6 +22,7 @@ export const router = createBrowserRouter(
       <Route path="/" element={<Home />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/crear-spot" element={<SpotPage />} />
+      <Route path="/explore" element={<Explore />} />
       <Route path="login" element={<Login mode="login" />} />
       <Route path="register" element={<Register mode="register" />} />
       <Route path="/single/:theId" element={<Single />} />  {/* Dynamic route for single items */}
