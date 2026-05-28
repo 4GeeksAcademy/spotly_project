@@ -10,7 +10,7 @@ export const Dashboard = () => {
     <div className="spotly-dashboard">
       <aside className="dashboard-sidebar">
         <div className="dashboard-logo">
-          <span><img src="./src/front/assets/img/spotlylogo-bbg.png"/></span>
+          <img className="dashboard-logo-img" src="./src/front/assets/img/spotlylogo-bbg.png"/>
         </div>
 
         <nav className="dashboard-menu">

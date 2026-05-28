@@ -283,17 +283,14 @@
   height: 100vh;
 }
 
-.dashboard-logo {
+.dashboard-logo-img {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 30px;
-  font-weight: 800;
+  justify-content: center;
+  margin-left: 40px;
+  width: 140px;
+  height: auto;
   margin-bottom: 36px;
-}
-
-.dashboard-logo svg {
-  color: #ef3340;
 }
 
 .dashboard-menu {
@@ -318,52 +315,6 @@
 .dashboard-menu a:hover {
   background: linear-gradient(135deg, #ef3340, #ff4d5e);
   color: white;
-}
-
-.publish-spot-btn {
-  width: 100%;
-  margin: 28px 0;
-  padding: 15px;
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #ef3340, #ff4d5e);
-  color: white;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.pro-card {
-  margin-top: 40px;
-  padding: 20px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 20px;
-}
-
-.pro-card svg {
-  color: #fbbf24;
-}
-
-.pro-card h3 {
-  margin: 10px 0 5px;
-}
-
-.pro-card p {
-  color: #cbd5e1;
-  font-size: 14px;
-}
-
-.pro-card button {
-  width: 100%;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: transparent;
-  color: white;
-  font-weight: 700;
 }
 
 .dashboard-main {
