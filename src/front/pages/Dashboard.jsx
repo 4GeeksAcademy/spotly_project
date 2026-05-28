@@ -14,14 +14,11 @@ export const Dashboard = () => {
         </div>
 
         <nav className="dashboard-menu">
-          <a className="active"><Home size={20} /> Inicio</a>
-          <a><Compass size={20} /> Explorar</a>
+          <a className="active"><Home size={20} /> Dashboard</a>
+          <a><Compass size={20} /> Explore</a>
           <a><MapPin size={20} /> Spots</a>
-          <a><Map size={20} /> Mapa</a>
-
-          <a><Bookmark size={20} /> Guardados</a>
-          <a><Bell size={20} /> Notificaciones</a>
-          <a><User size={20} /> Perfil</a>
+          <a><Bell size={20} /> Notifications</a>
+          <a><User size={20} /> Profile</a>
                     <button
             className="logout-btn"
              onClick={() => {
@@ -43,7 +40,7 @@ export const Dashboard = () => {
         <header className="dashboard-topbar">
           <div className="dashboard-search">
             <Search size={20} />
-            <input placeholder="Buscar spots, lugares, usuarios..." />
+            <input placeholder="Search... " />
           </div>
 
           <div className="dashboard-user">
@@ -61,14 +58,14 @@ export const Dashboard = () => {
         <section className="create-post-card">
           <div className="create-post-input">
             <img src="https://i.pravatar.cc/100?img=12" alt="User" />
-            <input placeholder="¿Qué spot quieres mostrar hoy?" />
+            <input placeholder="Share a new spot!" />
           </div>
 
           <div className="create-post-actions">
-            <span>Foto/Video</span>
-            <span>Ubicación</span>
-            <span>Etiquetar</span>
-            <button>Publicar</button>
+            <span>Photo/Video</span>
+            <span>Location</span>
+            <span>Tag</span>
+            <button>Post</button>
           </div>
         </section>
 
@@ -77,8 +74,8 @@ export const Dashboard = () => {
             <div className="post-header">
               <img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=100" alt="Brand" />
               <div>
-                <strong>Brand Studio <span className="pro-badge">Pro</span></strong>
-                <p>Ciudad de México · 2h</p>
+                <strong>Hector Arroyo <span className="pro-badge">Pro</span></strong>
+                <p>Mexico City, Mexico · 2h</p>
               </div>
             </div>
 
@@ -105,12 +102,12 @@ export const Dashboard = () => {
               <img src="https://i.pravatar.cc/100?img=44" alt="Ana" />
               <div>
                 <strong>Ana López</strong>
-                <p>Guadalajara · 4h</p>
+                <p>Madrid, Spain · 4h</p>
               </div>
             </div>
 
             <p className="post-text">
-              Rooftop con vista increíble al atardecer. Ideal para reuniones y eventos privados.
+              Rooftop with an incredible view at sunset. Ideal for private gatherings and events.
             </p>
 
             <img className="single-post-img" src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=900" alt="Rooftop" />
@@ -128,34 +125,34 @@ export const Dashboard = () => {
       <aside className="dashboard-rightbar">
         <div className="right-card">
           <div className="card-title">
-            <h3>Personas recomendadas</h3>
-            <span>Ver todas</span>
+            <h3>Suggested for you</h3>
+            <span>All</span>
           </div>
 
-          {["Carlos Mendoza", "María González", "Studio Creativo"].map((name, index) => (
+          {["Astrid Mata", "Alexis Peña", "Deimian Vasquez"].map((name, index) => (
             <div className="suggestion" key={index}>
               <img src={`https://i.pravatar.cc/100?img=${index + 20}`} alt={name} />
               <div>
                 <strong>{name}</strong>
-                <p>Creador de contenido</p>
+                <p>Web Developer</p>
               </div>
-              <button>Seguir</button>
+              <button>Follow</button>
             </div>
           ))}
         </div>
 
         <div className="right-card">
           <div className="card-title">
-            <h3>Tendencias de spots</h3>
-            <span>Ver más</span>
+            <h3>Trending spots</h3>
+            <span>See more...</span>
           </div>
 
-          {["Rooftops", "Murales", "Cafeterías", "Espacios industriales", "Playas"].map((trend, index) => (
+          {["Rooftops", "Murals", "Parks", "Sports", "Beaches"].map((trend, index) => (
             <div className="trend" key={index}>
               <span>{index + 1}</span>
               <div>
                 <strong>{trend}</strong>
-                <p>{12 - index * 2}.4K publicaciones</p>
+                <p>{12 - index * 2}.4K posts</p>
               </div>
             </div>
           ))}
@@ -163,8 +160,8 @@ export const Dashboard = () => {
 
         <div className="right-card">
           <div className="card-title">
-            <h3>Mapa de spots</h3>
-            <span>Ver mapa</span>
+            <h3>Spots map</h3>
+            <span>Full map</span>
           </div>
           <div className="fake-map">
             <MapPin />
