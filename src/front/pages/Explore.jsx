@@ -1,4 +1,5 @@
 import { Search, MapPin, Heart, Bookmark } from "lucide-react";
+import { DashboardSidebar } from "../components/DashboardSidebar";
 
 export const Explore = () => {
   const exploreSpots = [
@@ -46,61 +47,73 @@ export const Explore = () => {
     }
   ];
 
-  return (
-    <div className="explore-page">
-      <div className="explore-header">
-        <div>
-          <h1>Explore Spots</h1>
-          <p>Discover trending places, hidden gems and creative locations.</p>
+return (
+  <div className="spotly-dashboard">
+
+    <DashboardSidebar />
+
+    <main className="dashboard-main">
+
+      <div className="explore-page">
+
+        <div className="explore-header">
+          <div>
+            <h1>Explore Spots</h1>
+            <p>Discover trending places, hidden gems and creative locations.</p>
+          </div>
+
+          <div className="explore-search">
+            <Search size={20} />
+            <input placeholder="Search spots..." />
+          </div>
         </div>
 
-        <div className="explore-search">
-          <Search size={20} />
-          <input placeholder="Search spots..." />
+        <div className="explore-categories">
+          {["All", "Rooftops", "Coffee", "Murals", "Beaches", "Studios", "Views"].map((category, index) => (
+            <button className={index === 0 ? "active" : ""} key={category}>
+              {category}
+            </button>
+          ))}
         </div>
-      </div>
 
-      <div className="explore-categories">
-        {["All", "Rooftops", "Coffee", "Murals", "Beaches", "Studios", "Views"].map((category, index) => (
-          <button className={index === 0 ? "active" : ""} key={category}>
-            {category}
-          </button>
-        ))}
-      </div>
+        <section className="explore-grid">
+          {exploreSpots.map((spot, index) => (
+            <article className="explore-card" key={index}>
+              <img src={spot.image} alt={spot.title} />
 
-      <section className="explore-grid">
-        {exploreSpots.map((spot, index) => (
-          <article className="explore-card" key={index}>
-            <img src={spot.image} alt={spot.title} />
+              <div className="explore-card-overlay">
+                <span>{spot.category}</span>
 
-            <div className="explore-card-overlay">
-              <span>{spot.category}</span>
-
-              <button>
-                <Bookmark size={18} />
-              </button>
-            </div>
-
-            <div className="explore-card-content">
-              <h3>{spot.title}</h3>
-
-              <p>
-                <MapPin size={16} />
-                {spot.location}
-              </p>
-
-              <div className="explore-card-footer">
-                <span>
-                  <Heart size={17} />
-                  {spot.likes}
-                </span>
-
-                <button>View spot</button>
+                <button>
+                  <Bookmark size={18} />
+                </button>
               </div>
-            </div>
-          </article>
-        ))}
-      </section>
-    </div>
-  );
+
+              <div className="explore-card-content">
+                <h3>{spot.title}</h3>
+
+                <p>
+                  <MapPin size={16} />
+                  {spot.location}
+                </p>
+
+                <div className="explore-card-footer">
+                  <span>
+                    <Heart size={17} />
+                    {spot.likes}
+                  </span>
+
+                  <button>Check</button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+);
 };

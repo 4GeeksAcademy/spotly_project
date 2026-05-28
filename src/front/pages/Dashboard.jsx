@@ -2,6 +2,7 @@ import { MapPin, Heart, MessageCircle, Share2, Bookmark, Search, Bell, User, Hom
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { DashboardSidebar } from "../components/DashboardSidebar";
 
 export const Dashboard = () => {
   const { store, dispatch } = useGlobalReducer();
@@ -48,35 +49,7 @@ export const Dashboard = () => {
 
   return (
     <div className="spotly-dashboard">
-      <aside className="dashboard-sidebar">
-        <div className="dashboard-logo">
-          <img className="dashboard-logo-img" src="./src/front/assets/img/spotlylogo-bbg.png"/>
-        </div>
-
-        <nav className="dashboard-menu">
-          <a className="active"><Home size={20} /> Dashboard</a>
-          <a onClick={() => navigate("/explore")}>
-          <Compass size={20} /> Explore</a>
-          <a><MapPin size={20} /> Spots</a>
-          <a><Bell size={20} /> Notifications</a>
-          <a><User size={20} /> Profile</a>
-                    <button
-            className="logout-btn"
-             onClick={() => {
-            localStorage.removeItem("token");
-
-            dispatch({
-              type: "logout"
-              });
-
-            navigate("/");
-             }}
-                >
-             Logout
-          </button>
-        </nav>
-      </aside>
-
+      <DashboardSidebar />
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-search">
