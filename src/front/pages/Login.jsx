@@ -31,16 +31,13 @@ export const Login = ({ mode = "login", setAuthMode }) => {
           }
         : formData;
 
-    const response = await fetch(
-      import.meta.env.VITE_BACKEND_URL + endpoint,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      }
-    );
+    const response = await fetch(import.meta.env.VITE_BACKEND_URL + endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
 
     const data = await response.json();
 
@@ -55,7 +52,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
         payload: data
       });
 
-      navigate("/");
+      navigate("/dashboard");
     } else {
       alert("Usuario creado correctamente");
       navigate("/login");
