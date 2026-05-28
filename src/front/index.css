@@ -426,6 +426,24 @@
   color: white;
 }
 
+.stories-card,
+.create-post-card,
+.spot-post,
+.right-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  box-shadow: 0 15px 40px rgba(15, 23, 42, 0.06);
+}
+
+.stories-card {
+  display: flex;
+  gap: 24px;
+  padding: 22px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
 .create-post-card {
   padding: 20px;
   margin-bottom: 18px;
@@ -457,11 +475,11 @@
   align-items: center;
   gap: 24px;
   border-top: 1px solid #f1f5f9;
-  padding-top: 16px;
+  padding-top: 8px;
 }
 
 .create-post-actions span {
-  color: #4b5563;
+  color: #828385;
   font-weight: 600;
 }
 
@@ -470,8 +488,8 @@
   background: #ef3340;
   color: white;
   border: none;
-  padding: 12px 32px;
-  border-radius: 12px;
+  padding: 8px 24px;
+  border-radius: 8px;
   font-weight: 800;
 }
 
@@ -685,4 +703,19 @@
   .big-img {
     grid-row: auto;
   }
+}
+.logout-btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: #ef3340;
 }

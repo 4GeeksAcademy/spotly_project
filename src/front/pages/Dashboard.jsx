@@ -1,6 +1,11 @@
-import { MapPin, Heart, MessageCircle, Share2, Bookmark, Plus, Search, Bell, User, Home, Compass, Map, Crown } from "lucide-react";
+import { MapPin, Heart, MessageCircle, Share2, Bookmark, Search, Bell, User, Home, Compass, Map } from "lucide-react";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+import { useNavigate } from "react-router-dom";
 
 export const Dashboard = () => {
+  const { store, dispatch } = useGlobalReducer();
+  const navigate = useNavigate();
+
   return (
     <div className="spotly-dashboard">
       <aside className="dashboard-sidebar">
@@ -13,22 +18,25 @@ export const Dashboard = () => {
           <a><Compass size={20} /> Explorar</a>
           <a><MapPin size={20} /> Spots</a>
           <a><Map size={20} /> Mapa</a>
+
           <a><Bookmark size={20} /> Guardados</a>
           <a><Bell size={20} /> Notificaciones</a>
           <a><User size={20} /> Perfil</a>
+                    <button
+            className="logout-btn"
+             onClick={() => {
+            localStorage.removeItem("token");
+
+            dispatch({
+              type: "logout"
+              });
+
+            navigate("/");
+             }}
+                >
+             Logout
+          </button>
         </nav>
-
-        <button className="publish-spot-btn">
-          <Plus size={20} />
-          Publicar Spot
-        </button>
-
-        <div className="pro-card">
-          <Crown size={28} />
-          <h3>Plan Pro</h3>
-          <p>Llega a más personas con tus spots.</p>
-          <button>Ver beneficios</button>
-        </div>
       </aside>
 
       <main className="dashboard-main">
@@ -39,30 +47,16 @@ export const Dashboard = () => {
           </div>
 
           <div className="dashboard-user">
-            <button className="circle-btn"><Plus size={22} /></button>
             <Bell size={22} />
             <img src="https://i.pravatar.cc/100?img=12" alt="User" />
             <div>
-              <strong>Juan Pérez</strong>
-              <span>@juanperez</span>
+              <strong>
+                {store.user?.nombre} {store.user?.apellido}
+              </strong>
+
             </div>
           </div>
         </header>
-
-        <section className="stories-card">
-          {[
-            ["Tu historia", "https://i.pravatar.cc/100?img=12"],
-            ["María G.", "https://i.pravatar.cc/100?img=32"],
-            ["Café Luna", "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=200"],
-            ["Pedro S.", "https://i.pravatar.cc/100?img=15"],
-            ["Brand Studio", "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=200"]
-          ].map((story, index) => (
-            <div className="story" key={index}>
-              <img src={story[1]} alt={story[0]} />
-              <span>{story[0]}</span>
-            </div>
-          ))}
-        </section>
 
         <section className="create-post-card">
           <div className="create-post-input">
