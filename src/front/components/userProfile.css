@@ -12,12 +12,33 @@
   margin-bottom: 50px;
 }
 
+.profile-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
 .profile-avatar img {
   width: 220px;
   height: 220px;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0px 8px 30px rgba(0,0,0,0.12);
+}
+
+.change-photo-btn {
+  background: #ff4d67;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: .2s;
+}
+
+.change-photo-btn:hover {
+  opacity: .9;
 }
 
 .profile-info {
@@ -27,67 +48,81 @@
 .profile-top {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 18px;
   margin-bottom: 25px;
+  flex-wrap: wrap;
 }
 
 .profile-top h2 {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 42px;
+  font-size: 38px;
   font-weight: 700;
   color: #111;
 }
 
-.edit-btn {
+.edit-btn,
+.follow-btn {
   border: none;
-  background: #111827;
-  color: white;
   padding: 12px 22px;
   border-radius: 12px;
   font-weight: 600;
-  transition: 0.2s;
-}
-
-.edit-btn:hover {
-  background: #ff4d67;
-}
-
-.settings-icon {
-  color: #666;
+  transition: .2s;
   cursor: pointer;
+}
+
+.edit-btn {
+  background: #111827;
+  color: white;
+}
+
+.follow-btn {
+  background: #ff4d67;
+  color: white;
+}
+
+.edit-btn:hover,
+.follow-btn:hover {
+  opacity: .9;
+}
+
+.settings-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #555;
 }
 
 .profile-stats {
   display: flex;
   gap: 40px;
   margin-bottom: 25px;
+  flex-wrap: wrap;
 }
 
 .profile-stats span {
-  font-size: 20px;
+  font-size: 19px;
   color: #444;
-}
-
-.profile-stats strong {
-  color: #111;
 }
 
 .profile-bio p {
   margin: 6px 0;
   color: #444;
-  font-size: 18px;
+  font-size: 17px;
 }
 
-.profile-bio input,
-.profile-bio textarea,
-.profile-top input {
+.edit-input,
+.edit-textarea {
   width: 100%;
   padding: 12px;
   border-radius: 12px;
   border: 1px solid #ddd;
   margin-bottom: 10px;
+}
+
+.edit-textarea {
+  min-height: 90px;
 }
 
 .profile-highlights {
@@ -129,6 +164,7 @@
   border-top: 1px solid #ddd;
   padding-top: 25px;
   margin-bottom: 35px;
+  flex-wrap: wrap;
 }
 
 .profile-tabs button {
@@ -164,7 +200,7 @@
   width: 100%;
   height: 340px;
   object-fit: cover;
-  transition: 0.3s;
+  transition: .3s;
 }
 
 .profile-post img:hover {
@@ -176,9 +212,10 @@
   top: 15px;
   right: 15px;
   border: none;
-  background: rgba(255,255,255,0.95);
+  background: rgba(255,255,255,.95);
   border-radius: 12px;
   padding: 8px;
+  cursor: pointer;
 }
 
 @media (max-width: 900px) {
@@ -190,12 +227,10 @@
 
   .profile-top {
     justify-content: center;
-    flex-wrap: wrap;
   }
 
   .profile-stats {
     justify-content: center;
-    flex-wrap: wrap;
   }
 
   .profile-posts {
@@ -203,3 +238,4 @@
   }
 
 }
+

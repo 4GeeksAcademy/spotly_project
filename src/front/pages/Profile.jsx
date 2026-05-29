@@ -16,11 +16,29 @@ export const Profile = () => {
 
   const [editing, setEditing] = useState(false);
 
+  const [following, setFollowing] = useState(false);
+
+  const [profileImage, setProfileImage] = useState(
+    "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500"
+  );
+
+  const [followers, setFollowers] = useState(4200);
+
   const [userData, setUserData] = useState({
     username: "WanderPaws",
     bio: "✨ Exploring new places & capturing moments",
     location: "📍 Digital nomad"
   });
+
+  const handleFollow = () => {
+    setFollowing(!following);
+
+    if (!following) {
+      setFollowers(followers + 1);
+    } else {
+      setFollowers(followers - 1);
+    }
+  };
 
   const posts = [
     "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900",
@@ -44,10 +62,33 @@ export const Profile = () => {
           <section className="profile-header">
 
             <div className="profile-avatar">
+
               <img
-                src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500"
+                src={profileImage}
                 alt="profile"
               />
+
+              <label className="change-photo-btn">
+
+                Change Photo
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+
+                    if (file) {
+                      setProfileImage(
+                        URL.createObjectURL(file)
+                      );
+                    }
+                  }}
+                />
+
+              </label>
+
             </div>
 
             <div className="profile-info">
@@ -56,6 +97,7 @@ export const Profile = () => {
 
                 {editing ? (
                   <input
+                    className="edit-input"
                     value={userData.username}
                     onChange={(e) =>
                       setUserData({
@@ -67,6 +109,7 @@ export const Profile = () => {
                 ) : (
                   <h2>
                     {userData.username}
+
                     <BadgeCheck
                       size={22}
                       fill="#ff4d67"
@@ -82,15 +125,37 @@ export const Profile = () => {
                   {editing ? "Save Profile" : "Edit Profile"}
                 </button>
 
-                <Settings size={22} className="settings-icon" />
+                <button
+                  className="follow-btn"
+                  onClick={handleFollow}
+                >
+                  {following ? "Following" : "Follow"}
+                </button>
+
+                <button
+                  className="settings-btn"
+                  onClick={() =>
+                    alert("Settings panel coming soon ⚙️")
+                  }
+                >
+                  <Settings size={22} />
+                </button>
 
               </div>
 
               <div className="profile-stats">
 
-                <span><strong>128</strong> posts</span>
-                <span><strong>4.2k</strong> followers</span>
-                <span><strong>312</strong> following</span>
+                <span>
+                  <strong>128</strong> posts
+                </span>
+
+                <span>
+                  <strong>{followers}</strong> followers
+                </span>
+
+                <span>
+                  <strong>312</strong> following
+                </span>
 
               </div>
 
@@ -99,6 +164,7 @@ export const Profile = () => {
                 {editing ? (
                   <>
                     <input
+                      className="edit-input"
                       value={userData.location}
                       onChange={(e) =>
                         setUserData({
@@ -109,6 +175,7 @@ export const Profile = () => {
                     />
 
                     <textarea
+                      className="edit-textarea"
                       value={userData.bio}
                       onChange={(e) =>
                         setUserData({
@@ -136,13 +203,18 @@ export const Profile = () => {
           <section className="profile-highlights">
 
             {["Travel", "Coffee", "Nature"].map((item, index) => (
-              <div className="highlight-item" key={index}>
+              <div
+                className="highlight-item"
+                key={index}
+              >
 
                 <div className="highlight-circle">
+
                   <img
                     src={posts[index]}
                     alt={item}
                   />
+
                 </div>
 
                 <p>{item}</p>
@@ -176,9 +248,15 @@ export const Profile = () => {
           <section className="profile-posts">
 
             {posts.map((post, index) => (
-              <div className="profile-post" key={index}>
+              <div
+                className="profile-post"
+                key={index}
+              >
 
-                <img src={post} alt="post" />
+                <img
+                  src={post}
+                  alt="post"
+                />
 
                 <button className="post-menu">
                   <Ellipsis size={20} />
