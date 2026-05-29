@@ -9,12 +9,12 @@ import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
 import { Demo } from "./pages/Demo";
-import { SpotPage } from "./pages/SpotPage";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Dashboard } from "./pages/Dashboard.jsx";
 import { Explore } from "./pages/Explore.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
+import { SpotModal } from "./pages/SpotModal";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -23,13 +23,13 @@ export const router = createBrowserRouter(
       <Route path="/" element={<Home />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
-        <Dashboard />
-        </ProtectedRoute>}/>
-      <Route path="/crear-spot" element={<SpotPage />} />
+          <Dashboard />
+        </ProtectedRoute>} />
+      <Route path="/crear-spot" element={<SpotModal />} />
       <Route path="/explore" element={
         <ProtectedRoute>
-        <Explore />
-        </ProtectedRoute> }/>
+          <Explore />
+        </ProtectedRoute>} />
       <Route path="login" element={<Login mode="login" />} />
       <Route path="register" element={<Register mode="register" />} />
       <Route path="/single/:theId" element={<Single />} />  {/* Dynamic route for single items */}
