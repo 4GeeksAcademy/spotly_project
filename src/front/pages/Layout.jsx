@@ -6,7 +6,7 @@ import { Footer } from "../components/Footer";
 export const Layout = () => {
     const location = useLocation();
 
-    const hideNavbarRoutes = ["/dashboard"];
+    const hideNavbarRoutes = ["/dashboard", "/explore"];
 
     return (
         <ScrollToTop>
