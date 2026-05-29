@@ -1,119 +1,260 @@
+import { useEffect, useState } from "react";
 import { Search, MapPin, Heart, Bookmark } from "lucide-react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+import { SpotDetailsModal } from "../components/SpotDetailsModal";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
 export const Explore = () => {
-  const exploreSpots = [
-    {
-      title: "Rooftop at sunset",
-      location: "Miami, FL",
-      category: "Rooftop",
-      image: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=700",
-      likes: 234
-    },
-    {
-      title: "Urban mural wall",
-      location: "Wynwood, Miami",
-      category: "Murals",
-      image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=700",
-      likes: 412
-    },
-    {
-      title: "Hidden coffee shop",
-      location: "Austin, TX",
-      category: "Coffee",
-      image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=700",
-      likes: 188
-    },
-    {
-      title: "Beach photo spot",
-      location: "Malibu, CA",
-      category: "Beach",
-      image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=700",
-      likes: 530
-    },
-    {
-      title: "Industrial studio",
-      location: "Brooklyn, NY",
-      category: "Studio",
-      image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=700",
-      likes: 143
-    },
-    {
-      title: "City night view",
-      location: "Las Vegas, NV",
-      category: "Viewpoint",
-      image: "https://images.unsplash.com/photo-1605833556294-ea5c7a74f57d?w=700",
-      likes: 389
+  const { store } = useGlobalReducer();
+
+  const [spots, setSpots] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedSpot, setSelectedSpot] = useState(null);
+
+  const getSpots = async () => {
+    try {
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/spots", {
+        headers: {
+          Authorization: `Bearer ${store.token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.msg || "Error loading spots");
+        return;
+      }
+
+      setSpots(data.spots || data);
+    } catch (err) {
+      setError("Network error loading spots");
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-return (
-  <div className="spotly-dashboard">
+  useEffect(() => {
+    getSpots();
+  }, []);
 
-    <DashboardSidebar />
+  const updateSpotLike = (spotId, liked, likes) => {
+    setSpots((prevSpots) =>
+      prevSpots.map((spot) =>
+        spot.id === spotId ? { ...spot, liked, likes } : spot
+      )
+    );
 
-    <main className="dashboard-main">
+    setSelectedSpot((prevSpot) =>
+      prevSpot?.id === spotId ? { ...prevSpot, liked, likes } : prevSpot
+    );
+  };
 
-      <div className="explore-page">
+  const toggleLike = async (spotId) => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}/like`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
 
-        <div className="explore-header">
-          <div>
-            <h1>Explore Spots</h1>
-            <p>Discover trending places, hidden gems and creative locations.</p>
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data.msg || "Error liking spot");
+        return;
+      }
+
+      updateSpotLike(spotId, data.liked, data.likes);
+    } catch (err) {
+      console.error("Network error liking spot", err);
+    }
+  };
+
+  const categories = ["All", "Rooftop", "Coffee", "Murals", "Beach", "Studio", "Viewpoint"];
+
+  const filteredSpots = spots.filter((spot) => {
+    const title = spot.titulo || spot.title || "";
+    const description = spot.descripcion || spot.description || "";
+    const location = spot.location || spot.city || "";
+    const category = spot.category || "";
+    const search = searchTerm.toLowerCase();
+
+    const matchesSearch =
+      title.toLowerCase().includes(search) ||
+      description.toLowerCase().includes(search) ||
+      location.toLowerCase().includes(search) ||
+      category.toLowerCase().includes(search);
+
+    const matchesCategory =
+      activeCategory === "All" ||
+      category.toLowerCase() === activeCategory.toLowerCase();
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const spotsWithLocation = filteredSpots.filter(
+    (spot) => spot.latitude && spot.longitude
+  );
+
+  const mapCenter =
+    spotsWithLocation.length > 0
+      ? [spotsWithLocation[0].latitude, spotsWithLocation[0].longitude]
+      : [25.7617, -80.1918];
+
+  return (
+    <div className="spotly-dashboard">
+      <DashboardSidebar />
+
+      <main className="dashboard-main">
+        <div className="explore-page">
+          <div className="explore-header">
+            <div>
+              <h1>Explore Spots</h1>
+              <p>Discover trending places, hidden gems and creative locations.</p>
+            </div>
+
+            <div className="explore-search">
+              <Search size={20} />
+              <input
+                placeholder="Search spots..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="explore-search">
-            <Search size={20} />
-            <input placeholder="Search spots..." />
+          <div className="explore-categories">
+            {categories.map((category) => (
+              <button
+                className={activeCategory === category ? "active" : ""}
+                key={category}
+                onClick={() => setActiveCategory(category)}
+              >
+                {category}
+              </button>
+            ))}
           </div>
-        </div>
 
-        <div className="explore-categories">
-          {["All", "Rooftops", "Coffee", "Murals", "Beaches", "Studios", "Views"].map((category, index) => (
-            <button className={index === 0 ? "active" : ""} key={category}>
-              {category}
-            </button>
-          ))}
-        </div>
+          {!loading && !error && spotsWithLocation.length > 0 && (
+            <section className="explore-map-card">
+              <MapContainer
+                center={mapCenter}
+                zoom={11}
+                scrollWheelZoom={true}
+                className="explore-map"
+              >
+                <TileLayer
+                  attribution="&copy; OpenStreetMap contributors"
+                  url={
+                    store.theme === "dark"
+                      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                      : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  }
+                />
 
-        <section className="explore-grid">
-          {exploreSpots.map((spot, index) => (
-            <article className="explore-card" key={index}>
-              <img src={spot.image} alt={spot.title} />
+                {spotsWithLocation.map((spot) => (
+                  <Marker key={spot.id} position={[spot.latitude, spot.longitude]}>
+                    <Popup>
+                      <div className="map-popup">
+                        <strong>{spot.titulo || spot.title}</strong>
+                        <p>{spot.descripcion || "No description available."}</p>
+                        <button onClick={() => setSelectedSpot(spot)}>
+                          View spot
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </section>
+          )}
 
-              <div className="explore-card-overlay">
-                <span>{spot.category}</span>
+          {loading && (
+            <div className="spot-post">
+              <p>Loading spots...</p>
+            </div>
+          )}
 
-                <button>
-                  <Bookmark size={18} />
-                </button>
-              </div>
+          {error && (
+            <div className="spot-post">
+              <p>{error}</p>
+            </div>
+          )}
 
-              <div className="explore-card-content">
-                <h3>{spot.title}</h3>
+          {!loading && !error && (
+            <section className="explore-grid">
+              {filteredSpots.length > 0 ? (
+                filteredSpots.map((spot) => {
+                  const image =
+                    spot.images?.[0] ||
+                    spot.image ||
+                    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=700";
 
-                <p>
-                  <MapPin size={16} />
-                  {spot.location}
-                </p>
+                  return (
+                    <article className="explore-card" key={spot.id}>
+                      <img src={image} alt={spot.titulo || "Spot"} />
 
-                <div className="explore-card-footer">
-                  <span>
-                    <Heart size={17} />
-                    {spot.likes}
-                  </span>
+                      <div className="explore-card-overlay">
+                        <span>{spot.category || "Spot"}</span>
 
-                  <button>Check</button>
+                        <button>
+                          <Bookmark size={18} />
+                        </button>
+                      </div>
+
+                      <div className="explore-card-content">
+                        <h3>{spot.titulo || spot.title}</h3>
+
+                        <p>
+                          <MapPin size={16} />
+                          {spot.location || "Location not specified"}
+                        </p>
+
+                        <div className="explore-card-footer">
+                          <button
+                            className="like-btn"
+                            onClick={() => toggleLike(spot.id)}
+                          >
+                            <Heart
+                              size={17}
+                              fill={spot.liked ? "#ef3340" : "none"}
+                              color={spot.liked ? "#ef3340" : "currentColor"}
+                            />
+                            {spot.likes || 0}
+                          </button>
+
+                          <button onClick={() => setSelectedSpot(spot)}>
+                            View spot
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <div className="spot-post">
+                  <p>No spots found.</p>
                 </div>
-              </div>
-            </article>
-          ))}
-        </section>
+              )}
+            </section>
+          )}
+        </div>
+      </main>
 
-      </div>
-
-    </main>
-
-  </div>
-);
+      <SpotDetailsModal
+        spot={selectedSpot}
+        onClose={() => setSelectedSpot(null)}
+      />
+    </div>
+  );
 };

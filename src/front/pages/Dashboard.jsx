@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { SpotModal } from "./SpotModal";
 
-/* ── Carrusel de imágenes ── */
 const ImageCarousel = ({ images, titulo }) => {
   const [current, setCurrent] = useState(0);
 
@@ -21,40 +20,74 @@ const ImageCarousel = ({ images, titulo }) => {
         className="single-post-img"
         style={{ display: "block", width: "100%" }}
       />
+
       <button
         onClick={() => setCurrent((prev) => (prev - 1 + images.length) % images.length)}
         style={{
-          position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
-          background: "rgba(0,0,0,0.45)", border: "none", borderRadius: "50%",
-          width: 32, height: 32, cursor: "pointer", color: "white",
-          display: "flex", alignItems: "center", justifyContent: "center",
+          position: "absolute",
+          left: 8,
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "rgba(0,0,0,0.45)",
+          border: "none",
+          borderRadius: "50%",
+          width: 32,
+          height: 32,
+          cursor: "pointer",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <ChevronLeft size={18} />
       </button>
+
       <button
         onClick={() => setCurrent((prev) => (prev + 1) % images.length)}
         style={{
-          position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-          background: "rgba(0,0,0,0.45)", border: "none", borderRadius: "50%",
-          width: 32, height: 32, cursor: "pointer", color: "white",
-          display: "flex", alignItems: "center", justifyContent: "center",
+          position: "absolute",
+          right: 8,
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "rgba(0,0,0,0.45)",
+          border: "none",
+          borderRadius: "50%",
+          width: 32,
+          height: 32,
+          cursor: "pointer",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <ChevronRight size={18} />
       </button>
-      <div style={{
-        position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
-        display: "flex", gap: 5,
-      }}>
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: 8,
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          gap: 5,
+        }}
+      >
         {images.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
             style={{
-              width: i === current ? 18 : 7, height: 7, borderRadius: 4,
+              width: i === current ? 18 : 7,
+              height: 7,
+              borderRadius: 4,
               background: i === current ? "#ff5a5f" : "rgba(255,255,255,0.6)",
-              border: "none", cursor: "pointer", padding: 0, transition: "width 200ms",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              transition: "width 200ms",
             }}
           />
         ))}
@@ -66,23 +99,92 @@ const ImageCarousel = ({ images, titulo }) => {
 export const Dashboard = () => {
   const { store } = useGlobalReducer();
   const navigate = useNavigate();
+
   const [showSpot, setShowSpot] = useState(false);
   const [spots, setSpots] = useState([]);
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
 
-  useEffect(() => { fetchSpots(); }, []);
+  useEffect(() => {
+    fetchSpots();
+    fetchUsers();
+  }, []);
 
   const fetchSpots = async () => {
     try {
       const response = await fetch(
         import.meta.env.VITE_BACKEND_URL + "api/spots",
-        { headers: { Authorization: `Bearer ${store.token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
       );
+
       const data = await response.json();
-      if (response.ok) setSpots(data);
+
+      if (response.ok) {
+        setSpots(data);
+      }
     } catch (err) {
       console.error("Error cargando spots:", err);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + "api/users",
+        {
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error("Error cargando usuarios:", err);
+    }
+  };
+
+  const toggleLike = async (spotId) => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}/like`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data.msg || "Error liking spot");
+        return;
+      }
+
+      setSpots((prevSpots) =>
+        prevSpots.map((spot) =>
+          spot.id === spotId
+            ? {
+                ...spot,
+                liked: data.liked,
+                likes: data.likes,
+              }
+            : spot
+        )
+      );
+    } catch (err) {
+      console.error("Network error liking spot", err);
     }
   };
 
@@ -92,11 +194,18 @@ export const Dashboard = () => {
 
   const handleDelete = async (spotId) => {
     if (!confirm("¿Seguro que quieres eliminar este spot?")) return;
+
     try {
       const response = await fetch(
         import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}`,
-        { method: "DELETE", headers: { Authorization: `Bearer ${store.token}` } }
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
       );
+
       if (response.ok) {
         setSpots((prev) => prev.filter((s) => s.id !== spotId));
       } else {
@@ -110,10 +219,13 @@ export const Dashboard = () => {
 
   const timeAgo = (isoString) => {
     if (!isoString) return "";
+
     const diff = (Date.now() - new Date(isoString)) / 1000;
+
     if (diff < 60) return "now";
     if (diff < 3600) return `${Math.floor(diff / 60)}m`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+
     return `${Math.floor(diff / 86400)}d`;
   };
 
@@ -123,7 +235,9 @@ export const Dashboard = () => {
 
   const filteredSpots = spots.filter((spot) => {
     const search = activeSearch.toLowerCase();
+
     if (!search) return true;
+
     return (
       spot.user.nombre?.toLowerCase().includes(search) ||
       spot.user.apellido?.toLowerCase().includes(search) ||
@@ -131,24 +245,6 @@ export const Dashboard = () => {
       spot.descripcion?.toLowerCase().includes(search)
     );
   });
-
-  const [users, setUsers] = useState([]);
-
-
-  useEffect(() => { fetchUsers(); }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/users",
-        { headers: { Authorization: `Bearer ${store.token}` } }
-      );
-      const data = await response.json();
-      if (response.ok) setUsers(data);
-    } catch (err) {
-      console.error("Error cargando usuarios:", err);
-    }
-  };
 
   return (
     <div className="spotly-dashboard">
@@ -158,21 +254,31 @@ export const Dashboard = () => {
         <header className="dashboard-topbar">
           <div className="dashboard-search">
             <Search size={20} />
+
             <input
               placeholder="Search spots, places, users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") setActiveSearch(searchTerm); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setActiveSearch(searchTerm);
+              }}
             />
-            <button className="search-btn" onClick={() => setActiveSearch(searchTerm)}>
+
+            <button
+              className="search-btn"
+              onClick={() => setActiveSearch(searchTerm)}
+            >
               Search
             </button>
           </div>
+
           <div className="dashboard-user">
             <Bell size={22} />
             <img src="https://i.pravatar.cc/100?img=12" alt="User" />
             <div>
-              <strong>{store.user?.nombre} {store.user?.apellido}</strong>
+              <strong>
+                {store.user?.nombre} {store.user?.apellido}
+              </strong>
             </div>
           </div>
         </header>
@@ -180,7 +286,8 @@ export const Dashboard = () => {
         <section className="create-post-card">
           <div>
             <img src="https://i.pravatar.cc/100?img=12" alt="User" />
-            </div>
+          </div>
+
           <div className="create-post-actions">
             <button onClick={() => setShowSpot(true)}>Post</button>
           </div>
@@ -197,20 +304,24 @@ export const Dashboard = () => {
 
           {filteredSpots.length === 0 && activeSearch && (
             <div className="spot-post">
-              <p>No spots found for: <strong>{activeSearch}</strong></p>
+              <p>
+                No spots found for: <strong>{activeSearch}</strong>
+              </p>
             </div>
           )}
 
           {filteredSpots.map((spot) => (
             <article className="spot-post" key={spot.id}>
-
               <div className="post-header">
                 <img
                   src={`https://i.pravatar.cc/100?u=${spot.user.id}`}
                   alt={spot.user.nombre}
                 />
+
                 <div>
-                  <strong>{spot.user.nombre} {spot.user.apellido}</strong>
+                  <strong>
+                    {spot.user.nombre} {spot.user.apellido}
+                  </strong>
                   <p>{timeAgo(spot.created_at)}</p>
                 </div>
 
@@ -219,13 +330,19 @@ export const Dashboard = () => {
                     onClick={() => handleDelete(spot.id)}
                     title="Eliminar spot"
                     style={{
-                      marginLeft: "auto", background: "none", border: "none",
-                      cursor: "pointer", color: "#ccc", padding: "4px",
-                      borderRadius: "6px", display: "flex", alignItems: "center",
+                      marginLeft: "auto",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#ccc",
+                      padding: "4px",
+                      borderRadius: "6px",
+                      display: "flex",
+                      alignItems: "center",
                       transition: "color 150ms",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = "#ff5a5f"}
-                    onMouseLeave={(e) => e.currentTarget.style.color = "#ccc"}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#ff5a5f")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "#ccc")}
                   >
                     <Trash2 size={17} />
                   </button>
@@ -240,9 +357,13 @@ export const Dashboard = () => {
                   target="_blank"
                   rel="noreferrer"
                   style={{
-                    display: "flex", alignItems: "center", gap: "4px",
-                    fontSize: "0.8rem", color: "#ff5a5f",
-                    textDecoration: "none", marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "0.8rem",
+                    color: "#ff5a5f",
+                    textDecoration: "none",
+                    marginBottom: "0.5rem",
                   }}
                 >
                   <MapPin size={14} />
@@ -256,12 +377,30 @@ export const Dashboard = () => {
               )}
 
               <div className="post-actions">
-                <span><Heart size={20} /> 0</span>
-                <span><MessageCircle size={20} /> 0</span>
-                <span><Share2 size={20} /> 0</span>
-                <span><Bookmark size={20} /></span>
-              </div>
+                <button
+                  className="like-btn"
+                  onClick={() => toggleLike(spot.id)}
+                >
+                  <Heart
+                    size={20}
+                    fill={spot.liked ? "#ef3340" : "none"}
+                    color={spot.liked ? "#ef3340" : "currentColor"}
+                  />
+                  {spot.likes || 0}
+                </button>
 
+                <span>
+                  <MessageCircle size={20} /> 0
+                </span>
+
+                <span>
+                  <Share2 size={20} /> 0
+                </span>
+
+                <span>
+                  <Bookmark size={20} />
+                </span>
+              </div>
             </article>
           ))}
         </section>
@@ -273,19 +412,25 @@ export const Dashboard = () => {
             <h3>Suggested for you</h3>
             <span>All</span>
           </div>
+
           {users.slice(0, 5).map((user) => (
             <div className="suggestion" key={user.id}>
               <img
                 src={`https://i.pravatar.cc/100?u=${user.id}`}
                 alt={user.nombre}
               />
+
               <div>
-                <strong>{user.nombre} {user.apellido}</strong>
+                <strong>
+                  {user.nombre} {user.apellido}
+                </strong>
                 <p>Spotly user</p>
               </div>
+
               <button>Follow</button>
             </div>
           ))}
+
           {users.length === 0 && (
             <p style={{ fontSize: "0.85rem", color: "#aaa", padding: "0.5rem 0" }}>
               No other users yet.
@@ -298,9 +443,11 @@ export const Dashboard = () => {
             <h3>Trending spots</h3>
             <span>See more...</span>
           </div>
+
           {["Rooftops", "Murals", "Parks", "Sports", "Beaches"].map((trend, index) => (
             <div className="trend" key={index}>
               <span>{index + 1}</span>
+
               <div>
                 <strong>{trend}</strong>
                 <p>{12 - index * 2}.4K posts</p>
@@ -314,8 +461,12 @@ export const Dashboard = () => {
             <h3>Spots map</h3>
             <span>Full map</span>
           </div>
+
           <div className="fake-map">
-            <MapPin /><MapPin /><MapPin /><MapPin />
+            <MapPin />
+            <MapPin />
+            <MapPin />
+            <MapPin />
           </div>
         </div>
       </aside>

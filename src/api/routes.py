@@ -1,5 +1,5 @@
 from flask import request, jsonify, Blueprint
-from api.models import db, User, Spot, SpotImage, Category
+from api.models import db, User, Spot, SpotImage, Category, Like
 from flask_jwt_extended import (
     create_access_token,
     jwt_required,
@@ -175,7 +175,7 @@ def create_spot():
 
     return jsonify({
         "msg": "Spot creado",
-        "spot": _serialize_spot(new_spot)
+        "spot": _serialize_spot(new_spot, user_id)
     }), 201
 
 
@@ -183,13 +183,56 @@ def create_spot():
 @api.route('/spots', methods=['GET'])
 @jwt_required()
 def get_spots():
-    spots = Spot.query.order_by(Spot.created_at.desc()).all()
-    return jsonify([_serialize_spot(s) for s in spots]), 200
+    current_user_id = get_jwt_identity()
 
+    spots = Spot.query.order_by(Spot.created_at.desc()).all()
+
+    return jsonify([
+        _serialize_spot(s, current_user_id)
+        for s in spots
+    ]), 200
+
+@api.route('/spots/<int:spot_id>/like', methods=['POST'])
+@jwt_required()
+def toggle_like(spot_id):
+    current_user_id = int(get_jwt_identity())
+
+    spot = Spot.query.get(spot_id)
+
+    if not spot:
+        return jsonify({
+            "msg": "Spot no encontrado"
+        }), 404
+
+    existing_like = Like.query.filter_by(
+        user_id=current_user_id,
+        spot_id=spot_id
+    ).first()
+
+    if existing_like:
+        db.session.delete(existing_like)
+        liked = False
+    else:
+        new_like = Like(
+            user_id=current_user_id,
+            spot_id=spot_id
+        )
+        db.session.add(new_like)
+        liked = True
+
+    db.session.commit()
+
+    likes_count = Like.query.filter_by(spot_id=spot_id).count()
+
+    return jsonify({
+        "liked": liked,
+        "likes": likes_count
+    }), 200
 
 # ── helper de serialización ──────────────────────────────
-def _serialize_spot(spot):
+def _serialize_spot(spot, current_user_id=None):
     lat, lng = None, None
+
     if spot.location:
         try:
             lat, lng = spot.location.split(",")
@@ -197,6 +240,15 @@ def _serialize_spot(spot):
             lng = float(lng)
         except:
             pass
+
+    likes_count = Like.query.filter_by(spot_id=spot.id).count()
+
+    liked = False
+    if current_user_id:
+        liked = Like.query.filter_by(
+            spot_id=spot.id,
+            user_id=int(current_user_id)
+        ).first() is not None
 
     return {
         "id": spot.id,
@@ -206,6 +258,8 @@ def _serialize_spot(spot):
         "latitude": lat,
         "longitude": lng,
         "created_at": spot.created_at.isoformat() if spot.created_at else None,
+        "likes": likes_count,
+        "liked": liked,
         "user": {
             "id": spot.user.id,
             "nombre": spot.user.nombre,

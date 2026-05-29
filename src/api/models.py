@@ -65,6 +65,13 @@ class User(db.Model):
         lazy=True
     )
 
+    likes = db.relationship(
+        'Like',
+        back_populates='user',
+        cascade='all, delete-orphan',
+        lazy=True
+)
+    
     views = db.relationship(
         'View',
         back_populates='user',
@@ -191,6 +198,13 @@ class Spot(db.Model):
 
     favorites = db.relationship(
         'Favorite',
+        back_populates='spot',
+        cascade='all, delete-orphan',
+        lazy=True
+    )
+
+    likes = db.relationship(
+        'Like',
         back_populates='spot',
         cascade='all, delete-orphan',
         lazy=True
@@ -381,6 +395,44 @@ class Favorite(db.Model):
         back_populates='favorites'
     )
 
+# =========================================================
+# LIKES
+# =========================================================
+class Like(db.Model):
+    __tablename__ = 'likes'
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'spot_id', name='unique_user_spot_like'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    spot_id = db.Column(
+        db.Integer,
+        db.ForeignKey('spots.id'),
+        nullable=False
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.TIMESTAMP,
+        server_default=func.current_timestamp()
+    )
+
+    spot = db.relationship(
+        'Spot',
+        back_populates='likes'
+    )
+
+    user = db.relationship(
+        'User',
+        back_populates='likes'
+    )
 
 # =========================================================
 # VIEWS
