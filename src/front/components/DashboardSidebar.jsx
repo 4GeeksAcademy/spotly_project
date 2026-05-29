@@ -1,6 +1,7 @@
 import { MapPin, Bell, User, Home, Compass } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import { Profile } from "../pages/Profile";
 
 export const DashboardSidebar = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export const DashboardSidebar = () => {
           <Bell size={20} /> Notifications
         </a>
 
-        <a>
+        <a onClick={() => navigate("/Profile")}>
           <User size={20} /> Profile
         </a>
 
