@@ -15,6 +15,7 @@ import { Register } from "./pages/Register";
 import { Dashboard } from "./pages/Dashboard.jsx";
 import { Explore } from "./pages/Explore.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
+import { Profile } from "./pages/Profile";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -30,6 +31,11 @@ export const router = createBrowserRouter(
         <ProtectedRoute>
         <Explore />
         </ProtectedRoute> }/>
+        <Route path="/profile" element={
+        <ProtectedRoute>
+        <Profile />
+        </ProtectedRoute>
+        } />
       <Route path="login" element={<Login mode="login" />} />
       <Route path="register" element={<Register mode="register" />} />
       <Route path="/single/:theId" element={<Single />} />  {/* Dynamic route for single items */}
