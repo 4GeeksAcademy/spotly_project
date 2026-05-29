@@ -1,10 +1,10 @@
-import { MapPin, Bell, User, Home, Compass } from "lucide-react";
+import { MapPin, Bell, User, Home, Compass, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const DashboardSidebar = () => {
   const navigate = useNavigate();
-  const { dispatch } = useGlobalReducer();
+  const { store, dispatch } = useGlobalReducer();
 
   return (
     <aside className="dashboard-sidebar">
@@ -38,14 +38,17 @@ export const DashboardSidebar = () => {
         </a>
 
         <button
+          className="theme-toggle-btn"
+          onClick={() => dispatch({ type: "toggle_theme" })}
+        >
+          {store.theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          {store.theme === "dark" ? "Light Mode" : "Dark Mode"}
+        </button>
+
+        <button
           className="logout-btn"
           onClick={() => {
-            localStorage.removeItem("token");
-
-            dispatch({
-              type: "logout"
-            });
-
+            dispatch({ type: "logout" });
             navigate("/");
           }}
         >

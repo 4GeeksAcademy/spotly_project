@@ -419,6 +419,9 @@ body {
 }
 
 .create-post-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 20px;
   margin-bottom: 18px;
 }
@@ -429,32 +432,16 @@ body {
   gap: 14px;
 }
 
-.create-post-input img {
+.create-post-card img {
   width: 48px;
   height: 48px;
   border-radius: 50%;
 }
 
-.create-post-input input {
-  width: 100%;
-  padding: 15px;
-  border: none;
-  outline: none;
-  font-size: 16px;
-}
 
 .create-post-actions {
-  margin-top: 18px;
   display: flex;
   align-items: center;
-  gap: 24px;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 8px;
-}
-
-.create-post-actions span {
-  color: #828385;
-  font-weight: 600;
 }
 
 .create-post-actions button {
@@ -817,10 +804,6 @@ body {
   white-space: nowrap;
 }
 
-/* ================================
-   RESPONSIVE
-================================ */
-
 @media (max-width: 1200px) {
   .spotly-dashboard {
     grid-template-columns: 240px 1fr;
@@ -1052,5 +1035,75 @@ body {
 
   .features {
     grid-template-columns: 1fr;
+  }
+}
+
+body.dark-mode {
+  --spotly-bg: #0b0f17;
+  --spotly-landing-bg: #0b0f17;
+  --spotly-text: #f9fafb;
+  --spotly-muted: #9ca3af;
+  --spotly-border: #1f2937;
+  --spotly-card-shadow: 0 15px 40px rgba(0, 0, 0, 0.28);
+}
+
+body.dark-mode {
+  background: var(--spotly-bg);
+}
+
+body.dark-mode .dashboard-search,
+body.dark-mode .explore-search,
+body.dark-mode .stories-card,
+body.dark-mode .create-post-card,
+body.dark-mode .spot-post,
+body.dark-mode .right-card,
+body.dark-mode .explore-card,
+body.dark-mode .explore-categories button,
+body.dark-mode .suggestion button {
+  background: #111827;
+  color: var(--spotly-text);
+  border-color: var(--spotly-border);
+}
+
+body.dark-mode input {
+  background: transparent;
+  color: var(--spotly-text);
+}
+
+body.dark-mode input::placeholder {
+  color: #6b7280;
+}
+
+body.dark-mode .explore-card-footer button {
+  background: #ef3340;
+}
+
+body.dark-mode .theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-toggle-btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-weight: 700;
+  transition: 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.theme-toggle-btn:hover {
+  background: #ef3340;
+}
+
+@media (max-width: 768px) {
+  .theme-toggle-btn {
+    display: none;
   }
 }

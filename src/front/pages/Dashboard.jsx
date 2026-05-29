@@ -178,14 +178,10 @@ export const Dashboard = () => {
         </header>
 
         <section className="create-post-card">
-          <div className="create-post-input">
+          <div>
             <img src="https://i.pravatar.cc/100?img=12" alt="User" />
-            <input placeholder="Share a new spot!" />
-          </div>
+            </div>
           <div className="create-post-actions">
-            <span>Photo/Video</span>
-            <span>Location</span>
-            <span>Tag</span>
             <button onClick={() => setShowSpot(true)}>Post</button>
           </div>
         </section>

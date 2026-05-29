@@ -1,10 +1,9 @@
-// src/front/store.js
-
 export const initialStore = () => {
   return {
     message: null,
     token: localStorage.getItem("token") || null,
     user: JSON.parse(localStorage.getItem("user")) || null,
+    theme: localStorage.getItem("theme") || "light",
   };
 };
 
@@ -13,6 +12,7 @@ export default function storeReducer(store, action = {}) {
     case "login":
       localStorage.setItem("token", action.payload.token);
       localStorage.setItem("user", JSON.stringify(action.payload.user));
+
       return {
         ...store,
         token: action.payload.token,
@@ -22,6 +22,7 @@ export default function storeReducer(store, action = {}) {
     case "logout":
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+
       return {
         ...store,
         token: null,
@@ -30,10 +31,22 @@ export default function storeReducer(store, action = {}) {
 
     case "set_user":
       localStorage.setItem("user", JSON.stringify(action.payload));
+
       return {
         ...store,
         user: action.payload,
       };
+
+    case "toggle_theme": {
+      const newTheme = store.theme === "dark" ? "light" : "dark";
+
+      localStorage.setItem("theme", newTheme);
+
+      return {
+        ...store,
+        theme: newTheme,
+      };
+    }
 
     default:
       throw Error("Unknown action.");

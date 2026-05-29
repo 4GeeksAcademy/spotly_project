@@ -11,7 +11,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-/* ── captura clicks en el mapa y mueve el marcador ── */
 const LocationPicker = ({ onLocationSelect }) => {
   useMapEvents({
     click(e) {
@@ -23,56 +22,74 @@ const LocationPicker = ({ onLocationSelect }) => {
 
 export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
   const { store } = useGlobalReducer();
+
+  const isDark = store.theme === "dark";
+
+  const colors = {
+    modalBg: isDark ? "#111827" : "#ffffff",
+    text: isDark ? "#f9fafb" : "#111827",
+    muted: isDark ? "#9ca3af" : "#6b7280",
+    border: isDark ? "#374151" : "#e5e7eb",
+    inputBg: isDark ? "#0b0f17" : "#ffffff",
+    inputText: isDark ? "#f9fafb" : "#111827",
+    softBg: isDark ? "#1f2937" : "#f3f4f6",
+    danger: "#ff5a5f",
+  };
+
   const [userPosition, setUserPosition] = useState(null);
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [myImages, setMyImages] = useState([]);
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [error, setError] = useState("");
   const overlayRef = useRef(null);
 
-  // la posición activa es la seleccionada manualmente o la del GPS
   const activePosition = selectedPosition || userPosition;
 
-  /* ── animación ── */
   useEffect(() => {
     if (isOpen) requestAnimationFrame(() => setVisible(true));
     else setVisible(false);
   }, [isOpen]);
 
-  /* ── geolocalización ── */
   useEffect(() => {
     if (!isOpen) return;
+
     const watcher = navigator.geolocation.watchPosition((pos) => {
       const coords = [pos.coords.latitude, pos.coords.longitude];
       setUserPosition(coords);
-      // solo usar GPS si el usuario no ha seleccionado manualmente
-      setSelectedPosition((prev) => prev ?? null);
     });
+
     return () => navigator.geolocation.clearWatch(watcher);
   }, [isOpen]);
 
-  /* ── Escape ── */
   useEffect(() => {
-    const handler = (e) => { if (e.key === "Escape") handleClose(); };
+    const handler = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  /* ── scroll lock ── */
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   const handleClose = () => {
     setVisible(false);
+
     setTimeout(() => {
       setNombre("");
       setDescripcion("");
       setMyImages([]);
       setSelectedPosition(null);
+      setError("");
       onClose();
     }, 250);
   };
@@ -81,69 +98,76 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
     if (e.target === overlayRef.current) handleClose();
   };
 
-  const handleLocationSelect = (coords) => {
-    setSelectedPosition(coords);
-  };
-
-  const resetLocation = () => {
-    setSelectedPosition(null);
-  };
-
-  /* ── subir imágenes ── */
   const uploadImages = async (e) => {
     const files = Array.from(e.target.files);
     const uploadedUrls = [];
 
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("image", file);
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/upload",
-        { method: "POST", body: formData }
-      );
-      const url = await response.json();
-      uploadedUrls.push(url);
+    if (!files.length) return;
+
+    setUploadingImages(true);
+
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("image", file);
+
+        const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const url = await response.json();
+        uploadedUrls.push(url);
+      }
+
+      setMyImages((prev) => [...prev, ...uploadedUrls]);
+    } catch (err) {
+      setError("No se pudieron subir las imágenes.");
+    } finally {
+      setUploadingImages(false);
     }
-    setMyImages((prev) => [...prev, ...uploadedUrls]);
   };
 
-  /* ── crear spot ── */
+  const removeImage = (indexToRemove) => {
+    setMyImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
   const handleSubmit = async () => {
     if (!nombre.trim()) {
-      alert("El nombre del spot es obligatorio");
+      setError("El nombre del spot es obligatorio.");
       return;
     }
 
+    setError("");
     setLoading(true);
+
     try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/spots",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${store.token}`,
-          },
-          body: JSON.stringify({
-            titulo: nombre,
-            descripcion,
-            latitude: activePosition?.[0] ?? null,
-            longitude: activePosition?.[1] ?? null,
-            images: myImages,
-          }),
-        }
-      );
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/spots", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${store.token}`,
+        },
+        body: JSON.stringify({
+          titulo: nombre,
+          descripcion,
+          latitude: activePosition?.[0] ?? null,
+          longitude: activePosition?.[1] ?? null,
+          images: myImages,
+        }),
+      });
 
       const data = await response.json();
+
       if (!response.ok) {
-        alert(data.msg || "Error al crear el spot");
+        setError(data.msg || "Error al crear el spot.");
         return;
       }
 
       onSpotCreated?.(data.spot);
       handleClose();
     } catch (err) {
-      alert("Error de red al crear el spot");
+      setError("Error de red al crear el spot.");
     } finally {
       setLoading(false);
     }
@@ -158,72 +182,115 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
       ref={overlayRef}
       onClick={handleOverlayClick}
       style={{
-        position: "fixed", inset: 0,
-        backgroundColor: `rgba(0,0,0,${visible ? 0.55 : 0})`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 9999, padding: "1rem",
-        transition: "background-color 250ms ease",
+        position: "fixed",
+        inset: 0,
+        backgroundColor: `rgba(0,0,0,${visible ? 0.35 : 0})`,
+        backdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+        padding: "1rem",
+        transition: "all 250ms ease",
       }}
     >
       <div
         style={{
-          background: "white", borderRadius: "1.5rem",
-          boxShadow: "0 25px 60px rgba(0,0,0,0.25)",
-          width: "100%", maxWidth: "680px", maxHeight: "90vh",
-          overflowY: "auto", display: "flex", flexDirection: "column",
+          background: colors.modalBg,
+          color: colors.text,
+          borderRadius: "1.5rem",
+          boxShadow: "0 25px 70px rgba(0,0,0,0.35)",
+          width: "100%",
+          maxWidth: "700px",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
           transform: visible ? "translateY(0) scale(1)" : "translateY(24px) scale(0.97)",
           opacity: visible ? 1 : 0,
-          transition: "transform 250ms cubic-bezier(0.34,1.3,0.64,1), opacity 250ms ease",
+          transition: "all 300ms cubic-bezier(0.22,1,0.36,1)",
         }}
       >
-        {/* cabecera */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "1.25rem 1.5rem", borderBottom: "1px solid #f0f0f0",
-          position: "sticky", top: 0, background: "white", zIndex: 1,
-          borderRadius: "1.5rem 1.5rem 0 0",
-        }}>
+        <div
+          style={{
+            padding: "1.25rem 1.5rem",
+            borderBottom: `1px solid ${colors.border}`,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            position: "sticky",
+            top: 0,
+            background: colors.modalBg,
+            zIndex: 2,
+            borderRadius: "1.5rem 1.5rem 0 0",
+          }}
+        >
           <div>
-            <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "#1a1a1a" }}>
-              Crear Spot
+            <h2 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 800 }}>
+              Create Spot
             </h2>
-            <p style={{ margin: "2px 0 0", fontSize: "0.85rem", color: "#888" }}>
-              Publicando como <strong>{store.user?.nombre}</strong>
+            <p style={{ margin: "4px 0 0", color: colors.muted, fontSize: "0.9rem" }}>
+              Posting as <strong>{store.user?.nombre}</strong>
             </p>
           </div>
-          <button onClick={handleClose} aria-label="Cerrar" style={{
-            background: "#f5f5f5", border: "none", borderRadius: "50%",
-            width: 36, height: 36, cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "1.1rem", color: "#555", flexShrink: 0,
-          }}>✕</button>
+
+          <button
+            onClick={handleClose}
+            style={{
+              background: colors.softBg,
+              color: colors.text,
+              border: "none",
+              borderRadius: "50%",
+              width: 38,
+              height: 38,
+              cursor: "pointer",
+              fontSize: "1.1rem",
+            }}
+          >
+            ✕
+          </button>
         </div>
 
-        {/* mapa */}
         <div style={{ padding: "1rem 1.5rem 0" }}>
-          {/* instrucción + botón reset */}
-          <div style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            marginBottom: "0.5rem",
-          }}>
-            <span style={{ fontSize: "0.8rem", color: "#888" }}>
-              📍 Haz clic en el mapa para seleccionar una ubicación
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "1rem",
+              alignItems: "center",
+              marginBottom: "0.6rem",
+            }}
+          >
+            <span style={{ fontSize: "0.85rem", color: colors.muted }}>
+              📍 Click on the map to select a location
             </span>
+
             {selectedPosition && (
               <button
-                onClick={resetLocation}
+                onClick={() => setSelectedPosition(null)}
                 style={{
-                  fontSize: "0.75rem", color: "#ff5a5f", background: "none",
-                  border: "1px solid #ff5a5f", borderRadius: "6px",
-                  padding: "2px 8px", cursor: "pointer",
+                  fontSize: "0.8rem",
+                  color: colors.danger,
+                  background: "transparent",
+                  border: `1px solid ${colors.danger}`,
+                  borderRadius: "8px",
+                  padding: "5px 10px",
+                  cursor: "pointer",
                 }}
               >
-                Usar mi ubicación
+                Use my location
               </button>
             )}
           </div>
 
-          <div style={{ borderRadius: "1rem", overflow: "hidden", height: "clamp(200px, 35vh, 380px)" }}>
+          <div
+            style={{
+              borderRadius: "1rem",
+              overflow: "hidden",
+              height: "clamp(220px, 35vh, 380px)",
+              border: `1px solid ${colors.border}`,
+            }}
+          >
             <MapContainer
               center={mapCenter}
               zoom={13}
@@ -232,83 +299,193 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
             >
               <TileLayer
                 attribution="&copy; OpenStreetMap contributors"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                url={
+                  isDark
+                    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                }
               />
 
-              <LocationPicker onLocationSelect={handleLocationSelect} />
+              <LocationPicker onLocationSelect={setSelectedPosition} />
 
               {activePosition && (
                 <Marker position={activePosition}>
                   <Popup>
-                    {selectedPosition ? "Ubicación seleccionada" : "Tu ubicación"}
+                    {selectedPosition ? "Selected location" : "Your location"}
                   </Popup>
                 </Marker>
               )}
             </MapContainer>
           </div>
 
-          {/* coordenadas activas */}
           {activePosition && (
-            <p style={{ fontSize: "0.75rem", color: "#aaa", margin: "0.4rem 0 0", textAlign: "right" }}>
+            <p
+              style={{
+                color: colors.muted,
+                fontSize: "0.75rem",
+                textAlign: "right",
+                margin: "0.45rem 0 0",
+              }}
+            >
               {activePosition[0].toFixed(5)}, {activePosition[1].toFixed(5)}
-              {selectedPosition ? " · seleccionado" : " · GPS"}
+              {selectedPosition ? " · selected" : " · GPS"}
             </p>
           )}
         </div>
 
-        {/* formulario */}
-        <div style={{ padding: "1rem 1.5rem 1.5rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+        <div
+          style={{
+            padding: "1rem 1.5rem 1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.9rem",
+          }}
+        >
+          {error && (
+            <div
+              style={{
+                background: isDark ? "rgba(239,51,64,0.15)" : "#fff1f2",
+                color: colors.danger,
+                border: `1px solid ${colors.danger}`,
+                padding: "0.75rem 1rem",
+                borderRadius: "0.9rem",
+                fontSize: "0.9rem",
+                fontWeight: 600,
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           <input
             type="text"
-            placeholder="Nombre del spot"
+            placeholder="Spot name"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             style={{
-              width: "100%", border: "1px solid #ddd", borderRadius: "0.75rem",
-              padding: "0.75rem 1rem", fontSize: "0.95rem", outline: "none", boxSizing: "border-box",
+              width: "100%",
+              border: `1px solid ${colors.border}`,
+              borderRadius: "0.85rem",
+              padding: "0.85rem 1rem",
+              background: colors.inputBg,
+              color: colors.inputText,
+              outline: "none",
+              boxSizing: "border-box",
             }}
           />
 
           <textarea
-            placeholder="Describe este lugar..."
+            placeholder="Describe this place..."
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             style={{
-              width: "100%", border: "1px solid #ddd", borderRadius: "0.75rem",
-              padding: "0.75rem 1rem", fontSize: "0.95rem", outline: "none",
-              resize: "none", height: "90px", boxSizing: "border-box",
+              width: "100%",
+              border: `1px solid ${colors.border}`,
+              borderRadius: "0.85rem",
+              padding: "0.85rem 1rem",
+              background: colors.inputBg,
+              color: colors.inputText,
+              outline: "none",
+              resize: "none",
+              height: "95px",
+              boxSizing: "border-box",
             }}
           />
 
-          <label>
-            <span style={{ fontSize: "0.85rem", color: "#666" }}>Subir fotos</span>
+          <label
+            style={{
+              border: `1px dashed ${colors.border}`,
+              borderRadius: "1rem",
+              padding: "1rem",
+              background: isDark ? "#0b0f17" : "#fafafa",
+              cursor: "pointer",
+            }}
+          >
+            <strong style={{ color: colors.text }}>Upload photos</strong>
+            <p style={{ margin: "4px 0 0", color: colors.muted, fontSize: "0.85rem" }}>
+              Add images to make your spot stand out.
+            </p>
+
             <input
-              type="file" multiple onChange={uploadImages}
-              style={{ display: "block", marginTop: "0.4rem", fontSize: "0.85rem", color: "#555" }}
+              type="file"
+              multiple
+              onChange={uploadImages}
+              style={{
+                display: "block",
+                marginTop: "0.75rem",
+                color: colors.muted,
+              }}
             />
-            {myImages.length > 0 && (
-              <div style={{ marginTop: "0.6rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                {myImages.map((url, i) => (
-                  <img key={i} src={url} alt={`foto ${i + 1}`}
-                    style={{ width: 80, height: 80, objectFit: "cover", borderRadius: "0.6rem", border: "1px solid #eee" }}
-                  />
-                ))}
-              </div>
-            )}
           </label>
+
+          {uploadingImages && (
+            <p style={{ color: colors.muted, fontSize: "0.9rem" }}>
+              Uploading images...
+            </p>
+          )}
+
+          {myImages.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+                gap: "0.6rem",
+              }}
+            >
+              {myImages.map((url, index) => (
+                <div key={index} style={{ position: "relative" }}>
+                  <img
+                    src={url}
+                    alt={`spot ${index + 1}`}
+                    style={{
+                      width: "100%",
+                      height: 85,
+                      objectFit: "cover",
+                      borderRadius: "0.75rem",
+                      border: `1px solid ${colors.border}`,
+                    }}
+                  />
+
+                  <button
+                    onClick={() => removeImage(index)}
+                    style={{
+                      position: "absolute",
+                      top: 5,
+                      right: 5,
+                      border: "none",
+                      background: "rgba(0,0,0,0.65)",
+                      color: "white",
+                      borderRadius: "50%",
+                      width: 24,
+                      height: 24,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || uploadingImages}
             style={{
-              width: "100%", background: loading ? "#ccc" : "#ff5a5f",
-              color: "white", border: "none", borderRadius: "9999px",
-              padding: "0.85rem", fontSize: "1rem", fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer",
-              marginTop: "0.25rem", transition: "opacity 150ms, transform 150ms",
+              width: "100%",
+              background: loading || uploadingImages ? "#9ca3af" : colors.danger,
+              color: "white",
+              border: "none",
+              borderRadius: "9999px",
+              padding: "0.9rem",
+              fontSize: "1rem",
+              fontWeight: 800,
+              cursor: loading || uploadingImages ? "not-allowed" : "pointer",
+              marginTop: "0.3rem",
+              boxShadow: loading || uploadingImages ? "none" : "0 10px 30px rgba(255,90,95,0.35)",
             }}
           >
-            {loading ? "Publicando..." : "Crear Spot"}
+            {loading ? "Publishing..." : "Create Spot"}
           </button>
         </div>
       </div>
