@@ -6,26 +6,24 @@ import { Footer } from "../components/Footer";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const Layout = () => {
-    const location = useLocation();
-    const { store } = useGlobalReducer();
+  const location = useLocation();
+  const { store } = useGlobalReducer();
 
-    const hideNavbarRoutes = ["/dashboard", "/explore"];
+  const hideNavbarRoutes = ["/dashboard", "/explore", "/profile"];
+  const darkModeRoutes = ["/dashboard", "/explore", "/profile"];
 
-    useEffect(() => {
-        if (store.theme === "dark") {
-            document.body.classList.add("dark-mode");
-        } else {
-            document.body.classList.remove("dark-mode");
-        }
-    }, [store.theme]);
+  useEffect(() => {
+    const shouldUseDarkMode =
+      store.theme === "dark" && darkModeRoutes.includes(location.pathname);
 
-    return (
-        <ScrollToTop>
-            {!hideNavbarRoutes.includes(location.pathname) && <Navbar />}
+    document.body.classList.toggle("dark-mode", shouldUseDarkMode);
+  }, [store.theme, location.pathname]);
 
-            <Outlet />
-
-            {!hideNavbarRoutes.includes(location.pathname) && <Footer />}
-        </ScrollToTop>
-    );
+  return (
+    <ScrollToTop>
+      {!hideNavbarRoutes.includes(location.pathname) && <Navbar />}
+      <Outlet />
+      {!hideNavbarRoutes.includes(location.pathname) && <Footer />}
+    </ScrollToTop>
+  );
 };

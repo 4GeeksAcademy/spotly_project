@@ -1,5 +1,5 @@
 from flask import request, jsonify, Blueprint
-from api.models import db, User, Spot, SpotImage, Category, Like
+from api.models import db, User, Spot, SpotImage, Category, Like, Favorite
 from flask_jwt_extended import (
     create_access_token,
     jwt_required,
@@ -229,6 +229,45 @@ def toggle_like(spot_id):
         "likes": likes_count
     }), 200
 
+@api.route('/spots/<int:spot_id>/favorite', methods=['POST'])
+@jwt_required()
+def toggle_favorite(spot_id):
+    current_user_id = int(get_jwt_identity())
+
+    spot = Spot.query.get(spot_id)
+
+    if not spot:
+        return jsonify({
+            "msg": "Spot no encontrado"
+        }), 404
+
+    existing_favorite = Favorite.query.filter_by(
+        user_id=current_user_id,
+        spot_id=spot_id
+    ).first()
+
+    if existing_favorite:
+        db.session.delete(existing_favorite)
+        saved = False
+    else:
+        new_favorite = Favorite(
+            user_id=current_user_id,
+            spot_id=spot_id
+        )
+        db.session.add(new_favorite)
+        saved = True
+
+    db.session.commit()
+
+    favorites_count = Favorite.query.filter_by(
+        spot_id=spot_id
+    ).count()
+
+    return jsonify({
+        "saved": saved,
+        "favorites": favorites_count
+    }), 200
+
 # ── helper de serialización ──────────────────────────────
 def _serialize_spot(spot, current_user_id=None):
     lat, lng = None, None
@@ -250,6 +289,15 @@ def _serialize_spot(spot, current_user_id=None):
             user_id=int(current_user_id)
         ).first() is not None
 
+    favorites_count = Favorite.query.filter_by(spot_id=spot.id).count()
+
+    saved = False
+    if current_user_id:
+        saved = Favorite.query.filter_by(
+        spot_id=spot.id,
+        user_id=int(current_user_id)
+    ).first() is not None
+
     return {
         "id": spot.id,
         "titulo": spot.titulo,
@@ -260,6 +308,8 @@ def _serialize_spot(spot, current_user_id=None):
         "created_at": spot.created_at.isoformat() if spot.created_at else None,
         "likes": likes_count,
         "liked": liked,
+        "favorites": favorites_count,
+        "saved": saved,
         "user": {
             "id": spot.user.id,
             "nombre": spot.user.nombre,

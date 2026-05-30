@@ -1,6 +1,7 @@
 // src/front/components/Navbar.jsx
 
 import { Link } from "react-router-dom";
+import { Moon, Sun } from "lucide-react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import logo from "../assets/img/spotlylogo-wbg.png";
 
@@ -28,6 +29,7 @@ export const Navbar = () => {
                 </Link>
                 <Link to="/">Categories</Link>
                 <Link to="/">Collections</Link>
+
             </div>
 
             <div className="nav-auth">
