@@ -33,7 +33,7 @@ export const DashboardSidebar = () => {
           <Bell size={20} /> Notifications
         </a>
 
-        <a onClick={() => navigate("/Profile")}>
+        <a onClick={() => navigate("/profile")}>
           <User size={20} /> Profile
         </a>
 
