@@ -1,7 +1,6 @@
 import { MapPin, Bell, User, Home, Compass, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
-import { Profile } from "../pages/Profile";
 
 export const DashboardSidebar = () => {
   const navigate = useNavigate();
