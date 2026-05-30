@@ -7,6 +7,8 @@ from flask_jwt_extended import JWTManager
 from api.utils import APIException, generate_sitemap
 from api.models import db
 from api.routes import api
+from datetime import timedelta
+
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
 
@@ -14,6 +16,7 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 app.config["JWT_SECRET_KEY"] = "spotly-super-secret-key"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=12)
 
 db_url = os.getenv("DATABASE_URL")
 

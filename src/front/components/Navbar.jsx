@@ -23,7 +23,9 @@ export const Navbar = () => {
             </Link>
 
             <div className="nav-links">
-                <Link to="/">Explore</Link>
+                <Link to={store.token ? "/dashboard" : "/"}>
+                    Explore
+                </Link>
                 <Link to="/">Categories</Link>
                 <Link to="/">Collections</Link>
             </div>

@@ -1,44 +1,54 @@
-// src/front/store.js
-
 export const initialStore = () => {
-	return {
-		message: null,
-		user: null,
-		token: localStorage.getItem("token") || null
-	};
+  return {
+    message: null,
+    token: localStorage.getItem("token") || null,
+    user: JSON.parse(localStorage.getItem("user")) || null,
+    theme: localStorage.getItem("theme") || "light",
+  };
 };
 
 export default function storeReducer(store, action = {}) {
-	switch(action.type){
+  switch (action.type) {
+    case "login":
+      localStorage.setItem("token", action.payload.token);
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
 
-		case 'login':
+      return {
+        ...store,
+        token: action.payload.token,
+        user: action.payload.user,
+      };
 
-			localStorage.setItem("token", action.payload.token);
+    case "logout":
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
 
-			return {
-				...store,
-				token: action.payload.token,
-				user: action.payload.user
-			};
+      return {
+        ...store,
+        token: null,
+        user: null,
+      };
 
-		case 'logout':
+    case "set_user":
+      localStorage.setItem("user", JSON.stringify(action.payload));
 
-			localStorage.removeItem("token");
+      return {
+        ...store,
+        user: action.payload,
+      };
 
-			return {
-				...store,
-				token: null,
-				user: null
-			};
+    case "toggle_theme": {
+      const newTheme = store.theme === "dark" ? "light" : "dark";
 
-		case 'set_user':
+      localStorage.setItem("theme", newTheme);
 
-			return {
-				...store,
-				user: action.payload
-			};
+      return {
+        ...store,
+        theme: newTheme,
+      };
+    }
 
-		default:
-			throw Error('Unknown action.');
-	}
+    default:
+      throw Error("Unknown action.");
+  }
 }
