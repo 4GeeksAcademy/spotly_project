@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { SpotModal } from "./SpotModal";
+import { CommentBox } from "../components/CommentBox";
+
 
 const ImageCarousel = ({ images, titulo }) => {
   const [current, setCurrent] = useState(0);
@@ -105,6 +107,13 @@ export const Dashboard = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+
+  // ── AÑADE EXCLUSIVAMENTE ESTAS LÍNEAS AQUÍ ───────────
+  const [openComments, setOpenComments] = useState({});
+  const toggleComments = (spotId) => {
+    setOpenComments(prev => ({ ...prev, [spotId]: !prev[spotId] }));
+  };
+  // ───────────────────────────────────────────────────────
 
   useEffect(() => {
     fetchSpots();
@@ -375,7 +384,6 @@ export const Dashboard = () => {
               {spot.images.length > 0 && (
                 <ImageCarousel images={spot.images} titulo={spot.titulo} />
               )}
-
               <div className="post-actions">
                 <button
                   className="like-btn"
@@ -389,9 +397,22 @@ export const Dashboard = () => {
                   {spot.likes || 0}
                 </button>
 
-                <span>
-                  <MessageCircle size={20} /> 0
-                </span>
+                {/* ── REEMPLAZA EL VIEJO SPAN POR ESTE BOTÓN INTERACTIVO ── */}
+                <button
+                  onClick={() => toggleComments(spot.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    color: "inherit",
+                    padding: 0
+                  }}
+                >
+                  <MessageCircle size={20} />
+                </button>
+                {/* ──────────────────────────────────────────────────────── */}
 
                 <span>
                   <Share2 size={20} /> 0
@@ -401,7 +422,13 @@ export const Dashboard = () => {
                   <Bookmark size={20} />
                 </span>
               </div>
+
+              {/* ── INYECTA LA CAJA CONDICIONADA AQUÍ (ABAJO DE POST-ACTIONS) ── */}
+              {openComments[spot.id] && (
+                <CommentBox spotId={spot.id} token={store.token} />
+              )}
             </article>
+
           ))}
         </section>
       </main>
