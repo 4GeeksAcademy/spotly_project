@@ -117,9 +117,10 @@ export const Notifications = () => {
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`notification-card ${
-                  notification.is_read ? "read" : "unread"
-                }`}
+                className={`notification-card ${notification.is_read ? "read" : "unread"
+                  }`}
+                onClick={() => handleNotificationClick(notification)}
+                style={{ cursor: "pointer" }}
               >
                 <div className="notification-icon">
                   <Bell size={20} />

@@ -164,6 +164,38 @@ export const Dashboard = () => {
     }
   };
 
+  const handleNotificationClick = async (notification) => {
+    try {
+      await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/notifications/${notification.id}/read`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notification.id ? { ...n, is_read: true } : n
+        )
+      );
+
+      setUnreadCount((prev) =>
+        notification.is_read ? prev : Math.max(prev - 1, 0)
+      );
+
+      setShowNotifications(false);
+
+      if (notification.spot_id) {
+        navigate(`/single/${notification.spot_id}`);
+      }
+    } catch (error) {
+      console.error("Error opening notification:", error);
+    }
+  };
+
   const fetchSpots = async () => {
     try {
       const response = await fetch(
@@ -461,6 +493,8 @@ export const Dashboard = () => {
                         className={`notifications-dropdown-item ${
                           notification.is_read ? "read" : "unread"
                         }`}
+                        onClick={() => handleNotificationClick(notification)}
+                        style={{ cursor: "pointer" }}
                       >
                         <p>{notification.message}</p>
                         <span>
