@@ -170,6 +170,18 @@ def get_spots():
         for spot in spots
     ]), 200
 
+@api.route("/spots/<int:spot_id>", methods=["GET"])
+@jwt_required()
+def get_single_spot(spot_id):
+    current_user_id = int(get_jwt_identity())
+
+    spot = Spot.query.get(spot_id)
+
+    if not spot:
+        return jsonify({"msg": "Spot no encontrado"}), 404
+
+    return jsonify(_serialize_spot(spot, current_user_id)), 200
+
 
 @api.route("/spots/<int:spot_id>/like", methods=["POST"])
 @jwt_required()
