@@ -1,61 +1,58 @@
 from flask import request, jsonify, Blueprint
 from api.models import db, User, Spot, SpotImage, Category, Like, Comment, Favorite, Rating, View
-from flask_jwt_extended import (
-    create_access_token,
-    jwt_required,
-    get_jwt_identity
-)
-from werkzeug.security import (
-    generate_password_hash,
-    check_password_hash
-)
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import os
 import cloudinary
 import cloudinary.uploader
 
-api = Blueprint('api', __name__)
+api = Blueprint("api", __name__)
+
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+)
 
 
-@api.route('/upload', methods=['POST'])
+@api.route("/upload", methods=["POST"])
 def upload_image():
-    file = request.files["image"]
+    file = request.files.get("image")
+
     if not file:
         return jsonify({"error": "the file is required"}), 400
 
     result = cloudinary.uploader.upload(file)
-    if 'secure_url' not in result:
+
+    if "secure_url" not in result:
         return jsonify({"error": "the image can not be uploaded"}), 400
 
     return jsonify(result["secure_url"]), 200
 
 
-@api.route('/register', methods=['POST'])
+@api.route("/register", methods=["POST"])
 def register():
-
-    body = request.get_json()
+    body = request.get_json() or {}
 
     email = body.get("email")
     password = body.get("password")
     nombre = body.get("nombre")
+    apellido = body.get("apellido", "")
 
     if not email or not password or not nombre:
-        return jsonify({
-            "msg": "Faltan datos"
-        }), 400
+        return jsonify({"msg": "Faltan datos"}), 400
 
     user_exists = User.query.filter_by(email=email).first()
 
     if user_exists:
-        return jsonify({
-            "msg": "El usuario ya existe"
-        }), 400
+        return jsonify({"msg": "El usuario ya existe"}), 400
 
     hashed_password = generate_password_hash(password)
 
     new_user = User(
         nombre=nombre,
-        apellido="",
+        apellido=apellido,
         email=email,
         password_hash=hashed_password,
         telefono="",
@@ -66,42 +63,28 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({
-        "msg": "Usuario creado correctamente"
-    }), 201
+    return jsonify({"msg": "Usuario creado correctamente"}), 201
 
 
-cloudinary.config(
-    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.environ.get("CLOUDINARY_API_KEY"),
-    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
-)
-
-
-@api.route('/login', methods=['POST'])
+@api.route("/login", methods=["POST"])
 def login():
-
-    body = request.get_json()
+    body = request.get_json() or {}
 
     email = body.get("email")
     password = body.get("password")
 
+    if not email or not password:
+        return jsonify({"msg": "Email y contraseña son obligatorios"}), 400
+
     user = User.query.filter_by(email=email).first()
 
     if not user:
-        return jsonify({
-            "msg": "Usuario no encontrado"
-        }), 404
+        return jsonify({"msg": "Usuario no encontrado"}), 404
 
-    password_correct = check_password_hash(
-        user.password_hash,
-        password
-    )
+    password_correct = check_password_hash(user.password_hash, password)
 
     if not password_correct:
-        return jsonify({
-            "msg": "Contraseña incorrecta"
-        }), 401
+        return jsonify({"msg": "Contraseña incorrecta"}), 401
 
     token = create_access_token(identity=str(user.id))
 
@@ -110,35 +93,31 @@ def login():
         "user": {
             "id": user.id,
             "nombre": user.nombre,
-            "apellido": user.apellido,      # ← agregar
+            "apellido": user.apellido,
             "email": user.email,
-            "tipo_usuario": user.tipo_usuario  # ← agregar
+            "tipo_usuario": user.tipo_usuario
         }
     }), 200
 
 
-@api.route('/profile', methods=['GET'])
+@api.route("/profile", methods=["GET"])
 @jwt_required()
 def profile():
-
-    user_id = get_jwt_identity()
-
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
 
-    return jsonify({
-        "id": user.id,
-        "nombre": user.nombre,
-        "email": user.email
-    }), 200
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    return jsonify(user.serialize()), 200
+
 
 # ── CREAR SPOT ──────────────────────────────────────────
-
-
-@api.route('/spots', methods=['POST'])
+@api.route("/spots", methods=["POST"])
 @jwt_required()
 def create_spot():
-    user_id = get_jwt_identity()
-    body = request.get_json()
+    user_id = int(get_jwt_identity())
+    body = request.get_json() or {}
 
     titulo = body.get("titulo")
     descripcion = body.get("descripcion", "")
@@ -149,22 +128,23 @@ def create_spot():
     if not titulo:
         return jsonify({"msg": "El título es obligatorio"}), 400
 
-    # Buscar o crear categoría "General" automáticamente
     category = Category.query.filter_by(nombre="General").first()
+
     if not category:
         category = Category(nombre="General")
         db.session.add(category)
-        db.session.flush()  # obtener el id sin hacer commit aún
+        db.session.flush()
 
     location_str = f"{latitude},{longitude}" if latitude and longitude else None
 
     new_spot = Spot(
-        user_id=int(user_id),
+        user_id=user_id,
         category_id=category.id,
         titulo=titulo,
         descripcion=descripcion,
         location=location_str,
     )
+
     db.session.add(new_spot)
     db.session.flush()
 
@@ -179,20 +159,22 @@ def create_spot():
     }), 201
 
 
-# ── LISTAR SPOTS (feed) ──────────────────────────────────
-@api.route('/spots', methods=['GET'])
+# ── LISTAR SPOTS ────────────────────────────────────────
+@api.route("/spots", methods=["GET"])
 @jwt_required()
 def get_spots():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
 
     spots = Spot.query.order_by(Spot.created_at.desc()).all()
 
     return jsonify([
-        _serialize_spot(s, current_user_id)
-        for s in spots
+        _serialize_spot(spot, current_user_id)
+        for spot in spots
     ]), 200
 
-@api.route('/spots/<int:spot_id>/like', methods=['POST'])
+
+# ── LIKE / UNLIKE SPOT ──────────────────────────────────
+@api.route("/spots/<int:spot_id>/like", methods=["POST"])
 @jwt_required()
 def toggle_like(spot_id):
     current_user_id = int(get_jwt_identity())
@@ -200,9 +182,7 @@ def toggle_like(spot_id):
     spot = Spot.query.get(spot_id)
 
     if not spot:
-        return jsonify({
-            "msg": "Spot no encontrado"
-        }), 404
+        return jsonify({"msg": "Spot no encontrado"}), 404
 
     existing_like = Like.query.filter_by(
         user_id=current_user_id,
@@ -229,7 +209,9 @@ def toggle_like(spot_id):
         "likes": likes_count
     }), 200
 
-@api.route('/spots/<int:spot_id>/favorite', methods=['POST'])
+
+# ── FAVORITE / UNFAVORITE SPOT ──────────────────────────
+@api.route("/spots/<int:spot_id>/favorite", methods=["POST"])
 @jwt_required()
 def toggle_favorite(spot_id):
     current_user_id = int(get_jwt_identity())
@@ -237,9 +219,7 @@ def toggle_favorite(spot_id):
     spot = Spot.query.get(spot_id)
 
     if not spot:
-        return jsonify({
-            "msg": "Spot no encontrado"
-        }), 404
+        return jsonify({"msg": "Spot no encontrado"}), 404
 
     existing_favorite = Favorite.query.filter_by(
         user_id=current_user_id,
@@ -259,16 +239,195 @@ def toggle_favorite(spot_id):
 
     db.session.commit()
 
-    favorites_count = Favorite.query.filter_by(
-        spot_id=spot_id
-    ).count()
+    favorites_count = Favorite.query.filter_by(spot_id=spot_id).count()
 
     return jsonify({
         "saved": saved,
         "favorites": favorites_count
     }), 200
 
-# ── helper de serialización ──────────────────────────────
+
+# ── ELIMINAR SPOT ───────────────────────────────────────
+@api.route("/spots/<int:spot_id>", methods=["DELETE"])
+@jwt_required()
+def delete_spot(spot_id):
+    current_user_id = int(get_jwt_identity())
+
+    spot = Spot.query.get(spot_id)
+
+    if not spot:
+        return jsonify({"msg": "Spot no encontrado"}), 404
+
+    current_user = User.query.get(current_user_id)
+
+    if spot.user_id != current_user_id and current_user.tipo_usuario != "admin":
+        return jsonify({"msg": "No autorizado"}), 403
+
+    db.session.delete(spot)
+    db.session.commit()
+
+    return jsonify({"msg": "Spot eliminado correctamente"}), 200
+
+
+# ── LISTAR USUARIOS ─────────────────────────────────────
+@api.route("/users", methods=["GET"])
+@jwt_required()
+def get_users():
+    current_user_id = int(get_jwt_identity())
+
+    users = User.query.filter(User.id != current_user_id).all()
+
+    return jsonify([
+        {
+            "id": user.id,
+            "nombre": user.nombre,
+            "apellido": user.apellido,
+        }
+        for user in users
+    ]), 200
+
+
+# ── COMENTARIOS ─────────────────────────────────────────
+@api.route("/spots/<int:spot_id>/comments", methods=["GET"])
+@jwt_required()
+def get_spot_comments(spot_id):
+    current_user_id = int(get_jwt_identity())
+
+    spot = Spot.query.get(spot_id)
+
+    if not spot:
+        return jsonify({"msg": "Spot no encontrado"}), 404
+
+    comments = Comment.query.filter_by(
+        spot_id=spot_id,
+        parent_id=None
+    ).order_by(Comment.created_at.asc()).all()
+
+    return jsonify([
+        comment.serialize(current_user_id)
+        for comment in comments
+    ]), 200
+
+
+@api.route("/spots/<int:spot_id>/comments", methods=["POST"])
+@jwt_required()
+def add_spot_comment(spot_id):
+    current_user_id = int(get_jwt_identity())
+    body = request.get_json() or {}
+
+    contenido = body.get("contenido", "").strip()
+
+    if not contenido:
+        return jsonify({"msg": "El campo contenido es obligatorio"}), 400
+
+    if len(contenido) > 500:
+        return jsonify({"msg": "El comentario no puede pasar de 500 caracteres"}), 400
+
+    spot = Spot.query.get(spot_id)
+
+    if not spot:
+        return jsonify({"msg": "Spot no encontrado"}), 404
+
+    nuevo_comentario = Comment(
+        contenido=contenido,
+        user_id=current_user_id,
+        spot_id=spot_id,
+        parent_id=None
+    )
+
+    db.session.add(nuevo_comentario)
+    db.session.commit()
+
+    return jsonify(nuevo_comentario.serialize(current_user_id)), 201
+
+
+@api.route("/comments/<int:comment_id>/reply", methods=["POST"])
+@jwt_required()
+def reply_comment(comment_id):
+    current_user_id = int(get_jwt_identity())
+    body = request.get_json() or {}
+
+    contenido = body.get("contenido", "").strip()
+
+    if not contenido:
+        return jsonify({"msg": "La respuesta no puede estar vacía"}), 400
+
+    if len(contenido) > 500:
+        return jsonify({"msg": "La respuesta no puede pasar de 500 caracteres"}), 400
+
+    parent = Comment.query.get(comment_id)
+
+    if not parent:
+        return jsonify({"msg": "Comentario no encontrado"}), 404
+
+    if parent.parent_id is not None:
+        return jsonify({"msg": "Solo puedes responder comentarios principales"}), 400
+
+    reply = Comment(
+        contenido=contenido,
+        user_id=current_user_id,
+        spot_id=parent.spot_id,
+        parent_id=comment_id
+    )
+
+    db.session.add(reply)
+    db.session.commit()
+
+    return jsonify(reply.serialize(current_user_id)), 201
+
+
+@api.route("/comments/<int:comment_id>", methods=["PUT"])
+@jwt_required()
+def update_comment(comment_id):
+    current_user_id = int(get_jwt_identity())
+    body = request.get_json() or {}
+
+    contenido = body.get("contenido", "").strip()
+
+    if not contenido:
+        return jsonify({"msg": "El comentario no puede estar vacío"}), 400
+
+    if len(contenido) > 500:
+        return jsonify({"msg": "El comentario no puede pasar de 500 caracteres"}), 400
+
+    comment = Comment.query.get(comment_id)
+
+    if not comment:
+        return jsonify({"msg": "Comentario no encontrado"}), 404
+
+    current_user = User.query.get(current_user_id)
+
+    if comment.user_id != current_user_id and current_user.tipo_usuario != "admin":
+        return jsonify({"msg": "No autorizado"}), 403
+
+    comment.contenido = contenido
+    db.session.commit()
+
+    return jsonify(comment.serialize(current_user_id)), 200
+
+
+@api.route("/comments/<int:comment_id>", methods=["DELETE"])
+@jwt_required()
+def delete_comment(comment_id):
+    current_user_id = int(get_jwt_identity())
+
+    comment = Comment.query.get(comment_id)
+
+    if not comment:
+        return jsonify({"msg": "Comentario no encontrado"}), 404
+
+    current_user = User.query.get(current_user_id)
+
+    if comment.user_id != current_user_id and current_user.tipo_usuario != "admin":
+        return jsonify({"msg": "No autorizado"}), 403
+
+    db.session.delete(comment)
+    db.session.commit()
+
+    return jsonify({"msg": "Comentario eliminado correctamente"}), 200
+
+
+# ── HELPER DE SERIALIZACIÓN ─────────────────────────────
 def _serialize_spot(spot, current_user_id=None):
     lat, lng = None, None
 
@@ -277,26 +436,29 @@ def _serialize_spot(spot, current_user_id=None):
             lat, lng = spot.location.split(",")
             lat = float(lat)
             lng = float(lng)
-        except:
+        except Exception:
             pass
 
     likes_count = Like.query.filter_by(spot_id=spot.id).count()
+    favorites_count = Favorite.query.filter_by(spot_id=spot.id).count()
+    comments_count = Comment.query.filter_by(
+        spot_id=spot.id,
+        parent_id=None
+    ).count()
 
     liked = False
+    saved = False
+
     if current_user_id:
         liked = Like.query.filter_by(
             spot_id=spot.id,
             user_id=int(current_user_id)
         ).first() is not None
 
-    favorites_count = Favorite.query.filter_by(spot_id=spot.id).count()
-
-    saved = False
-    if current_user_id:
         saved = Favorite.query.filter_by(
-        spot_id=spot.id,
-        user_id=int(current_user_id)
-    ).first() is not None
+            spot_id=spot.id,
+            user_id=int(current_user_id)
+        ).first() is not None
 
     return {
         "id": spot.id,
@@ -310,113 +472,12 @@ def _serialize_spot(spot, current_user_id=None):
         "liked": liked,
         "favorites": favorites_count,
         "saved": saved,
+        "comments_count": comments_count,
         "user": {
             "id": spot.user.id,
             "nombre": spot.user.nombre,
             "apellido": spot.user.apellido,
             "tipo_usuario": spot.user.tipo_usuario,
-        },
+        } if spot.user else None,
         "images": [img.image_url for img in spot.images],
     }
-# ── LISTAR USUARIOS ──────────────────────────────────────
-
-
-@api.route('/users', methods=['GET'])
-@jwt_required()
-def get_users():
-    current_user_id = int(get_jwt_identity())
-    users = User.query.filter(User.id != current_user_id).all()
-    return jsonify([{
-        "id": u.id,
-        "nombre": u.nombre,
-        "apellido": u.apellido,
-    } for u in users]), 200
-
-
-# ── ELIMINAR SPOT ───────────────────────────────────────
-@api.route('/spots/<int:spot_id>', methods=['DELETE'])
-@jwt_required()
-def delete_spot(spot_id):
-
-    current_user_id = int(get_jwt_identity())
-
-    spot = Spot.query.get(spot_id)
-
-    if not spot:
-        return jsonify({
-            "msg": "Spot no encontrado"
-        }), 404
-
-    current_user = User.query.get(current_user_id)
-
-    # Solo dueño o admin pueden eliminar
-    if (
-        spot.user_id != current_user_id and
-        current_user.tipo_usuario != "admin"
-    ):
-        return jsonify({
-            "msg": "No autorizado"
-        }), 403
-
-    # eliminar imágenes primero
-    SpotImage.query.filter_by(spot_id=spot.id).delete()
-
-    db.session.delete(spot)
-    db.session.commit()
-
-    return jsonify({
-        "msg": "Spot eliminado correctamente"
-    }), 200
-
-
-
-
-
-
-
-# ── Carlos ENDPOINTS DE COMENTARIOS PARA SPOTS ──────────────────
-from api.models import Comment
-
-@api.route('/spots/<int:spot_id>/comments', methods=['GET'])
-@jwt_required()
-def get_spot_comments(spot_id):
-    spot = Spot.query.get(spot_id)
-    if not spot:
-        return jsonify({"msg": "Spot no encontrado"}), 404
-
-    comments = Comment.query.filter_by(spot_id=spot_id).order_by(Comment.created_at.asc()).all()
-    return jsonify([{
-        "id": c.id,
-        "contenido": c.contenido,
-        "created_at": c.created_at.isoformat() if c.created_at else None,
-        "user_id": c.user_id,
-        "autor": f"{c.user.nombre} {c.user.apellido}".strip() if c.user else "Usuario"
-    } for c in comments]), 200
-
-@api.route('/spots/<int:spot_id>/comments', methods=['POST'])
-@jwt_required()
-def add_spot_comment(spot_id):
-    current_user_id = get_jwt_identity()
-    body = request.get_json()
-    
-    if not body or "contenido" not in body:
-        return jsonify({"msg": "El campo contenido es obligatorio"}), 400
-        
-    spot = Spot.query.get(spot_id)
-    if not spot:
-        return jsonify({"msg": "Spot no encontrado"}), 404
-        
-    nuevo_comentario = Comment(
-        contenido=body["contenido"],
-        user_id=int(current_user_id),
-        spot_id=spot_id
-    )
-    db.session.add(nuevo_comentario)
-    db.session.commit()
-    
-    return jsonify({
-        "id": nuevo_comentario.id,
-        "contenido": nuevo_comentario.contenido,
-        "autor": f"{nuevo_comentario.user.nombre} {nuevo_comentario.user.apellido}".strip() if nuevo_comentario.user else "Usuario"
-    }), 201
-

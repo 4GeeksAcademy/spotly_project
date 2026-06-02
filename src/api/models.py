@@ -185,6 +185,12 @@ class Comment(db.Model):
     spot_id = db.Column(db.Integer, db.ForeignKey("spots.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
+    parent_id = db.Column(
+        db.Integer,
+        db.ForeignKey("comments.id"),
+        nullable=True
+    )
+
     contenido = db.Column(db.Text, nullable=False)
 
     created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
@@ -197,19 +203,30 @@ class Comment(db.Model):
     spot = db.relationship("Spot", back_populates="comments")
     user = db.relationship("User", back_populates="comments")
 
+    replies = db.relationship(
+        "Comment",
+        backref=db.backref("parent", remote_side=[id]),
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
     def serialize(self, current_user_id=None):
         return {
             "id": self.id,
             "spot_id": self.spot_id,
             "user_id": self.user_id,
+            "parent_id": self.parent_id,
             "contenido": self.contenido,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "can_edit": int(current_user_id) == self.user_id if current_user_id else False,
             "user": self.user.serialize_public() if self.user else None,
+            "autor": f"{self.user.nombre} {self.user.apellido}".strip() if self.user else "Usuario",
+            "replies": [
+                reply.serialize(current_user_id)
+                for reply in sorted(self.replies, key=lambda r: r.created_at or "")
+            ] if self.parent_id is None else []
         }
-
-
 # =========================================================
 # RATINGS
 # =========================================================

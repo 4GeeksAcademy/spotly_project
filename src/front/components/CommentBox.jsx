@@ -1,68 +1,155 @@
 import React, { useState, useEffect } from "react";
+import "../styles/commentBox.css";
 
 export const CommentBox = ({ spotId, token }) => {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
+    const [replyingTo, setReplyingTo] = useState(null);
+
+    const API_URL = import.meta.env.VITE_BACKEND_URL;
+
+    const getComments = () => {
+        if (!spotId || !token) return;
+
+        fetch(`${API_URL}api/spots/${spotId}/comments`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setComments(Array.isArray(data) ? data : []))
+            .catch(err => console.error("Error cargando comentarios:", err));
+    };
 
     useEffect(() => {
-        if (!spotId || !token) return;
-        fetch(`${import.meta.env.VITE_BACKEND_URL}api/spots/${spotId}/comments`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        })
-        .then(res => res.json())
-        .then(data => Array.isArray(data) ? setComments(data) : setComments([]))
-        .catch(err => console.error("Error cargando comentarios:", err));
+        getComments();
     }, [spotId, token]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
         if (!newComment.trim()) return;
 
-        fetch(`${import.meta.env.VITE_BACKEND_URL}api/spots/${spotId}/comments`, {
+        const endpoint = replyingTo
+            ? `${API_URL}api/comments/${replyingTo.id}/reply`
+            : `${API_URL}api/spots/${spotId}/comments`;
+
+        fetch(endpoint, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
+                Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({ contenido: newComment })
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.id) {
-                setComments([...comments, data]);
-                setNewComment("");
-            }
-        })
-        .catch(err => console.error("Error al publicar comentario:", err));
+            .then(res => res.json())
+            .then(data => {
+                if (data.id) {
+                    setNewComment("");
+                    setReplyingTo(null);
+                    getComments();
+                }
+            })
+            .catch(err => console.error("Error publicando comentario:", err));
+    };
+
+    const getAuthorName = (comment) => {
+        if (comment.autor) return comment.autor;
+
+        if (comment.user) {
+            return `${comment.user.nombre || ""} ${comment.user.apellido || ""}`.trim();
+        }
+
+        return "Usuario";
     };
 
     return (
-        <div className="mt-5 p-4 bg-gray-50 dark:bg-zinc-950 rounded-xl border border-gray-100 dark:border-zinc-900">
-            <h4 className="text-sm font-semibold mb-3 text-left text-gray-800 dark:text-gray-200">Comentarios</h4>
-            <div className="max-h-40 overflow-y-auto mb-3 space-y-2 pr-1 text-left">
+        <section className="comment-box">
+            <div className="comment-box__header">
+                <div>
+                    <h4>Comentarios</h4>
+                    <span>
+                        {comments.length} {comments.length === 1 ? "comentario" : "comentarios"}
+                    </span>
+                </div>
+            </div>
+
+            <div className="comment-box__list">
                 {comments.length === 0 ? (
-                    <p className="text-xs text-gray-400 my-1">Sin comentarios aún. ¡Sé el primero!</p>
+                    <div className="comment-box__empty">
+                        <p>Sin comentarios aún.</p>
+                        <small>Sé el primero en comentar este spot.</small>
+                    </div>
                 ) : (
-                    comments.map(c => (
-                        <div key={c.id} className="text-xs leading-relaxed">
-                            <strong className="text-gray-800 dark:text-gray-200">@{c.autor}: </strong>
-                            <span className="text-gray-600 dark:text-gray-400">{c.contenido}</span>
-                        </div>
+                    comments.map(comment => (
+                        <article key={comment.id} className="comment">
+                            <div className="comment__avatar">
+                                {getAuthorName(comment).charAt(0).toUpperCase()}
+                            </div>
+
+                            <div className="comment__content">
+                                <div className="comment__bubble">
+                                    <strong>@{getAuthorName(comment)}</strong>
+                                    <p>{comment.contenido}</p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="comment__reply-btn"
+                                    onClick={() => setReplyingTo(comment)}
+                                >
+                                    Responder
+                                </button>
+
+                                {comment.replies && comment.replies.length > 0 && (
+                                    <div className="comment__replies">
+                                        {comment.replies.map(reply => (
+                                            <article key={reply.id} className="reply">
+                                                <div className="reply__avatar">
+                                                    {getAuthorName(reply).charAt(0).toUpperCase()}
+                                                </div>
+
+                                                <div className="reply__bubble">
+                                                    <strong>@{getAuthorName(reply)}</strong>
+                                                    <p>{reply.contenido}</p>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </article>
                     ))
                 )}
             </div>
-            <form onSubmit={handleSubmit} className="flex gap-2">
-                <input 
-                    type="text" 
-                    placeholder="Escribe un comentario..." 
-                    className="flex-1 px-4 py-2 rounded-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs outline-none focus:border-red-400 dark:text-white"
+
+            {replyingTo && (
+                <div className="reply-banner">
+                    <span>Respondiendo a @{getAuthorName(replyingTo)}</span>
+
+                    <button
+                        type="button"
+                        onClick={() => setReplyingTo(null)}
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+
+            <form className="comment-box__form" onSubmit={handleSubmit}>
+                <input
+                    type="text"
+                    placeholder={
+                        replyingTo
+                            ? `Responder a @${getAuthorName(replyingTo)}...`
+                            : "Escribe un comentario..."
+                    }
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                 />
-                <button type="submit" className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-xs font-bold transition-colors">
+
+                <button type="submit" disabled={!newComment.trim()}>
                     Enviar
                 </button>
             </form>
-        </div>
+        </section>
     );
 };
