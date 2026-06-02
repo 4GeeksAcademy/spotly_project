@@ -4,6 +4,9 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import "leaflet/dist/leaflet.css";
 
+import { CommentBox } from "./CommentBox";
+
+
 export const SpotDetailsModal = ({ spot, onClose }) => {
   const { store } = useGlobalReducer();
   const [visible, setVisible] = useState(false);
@@ -148,6 +151,10 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
               </MapContainer>
             </div>
           )}
+
+
+<CommentBox spotId={spot.id} token={store.token} />
+
         </div>
       </div>
     </div>
