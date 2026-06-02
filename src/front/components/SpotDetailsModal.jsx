@@ -11,6 +11,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
   const { store } = useGlobalReducer();
   const [visible, setVisible] = useState(false);
   const [activeImage, setActiveImage] = useState("");
+  const [localSpot, setLocalSpot] = useState(null);
 
   useEffect(() => {
     if (spot) {
@@ -19,28 +20,107 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
         spot.image ||
         "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200";
 
+      setLocalSpot(spot);
       setActiveImage(image);
       requestAnimationFrame(() => setVisible(true));
     }
   }, [spot]);
 
-  if (!spot) return null;
+  if (!spot || !localSpot) return null;
 
   const isDark = store.theme === "dark";
 
   const images =
-    spot.images?.length > 0
-      ? spot.images
+    localSpot.images?.length > 0
+      ? localSpot.images
       : [
-          spot.image ||
+          localSpot.image ||
             "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200",
         ];
 
-  const hasLocation = spot.latitude && spot.longitude;
+  const hasLocation = localSpot.latitude && localSpot.longitude;
 
   const handleClose = () => {
     setVisible(false);
     setTimeout(() => onClose(), 220);
+  };
+
+  const toggleLike = async () => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${localSpot.id}/like`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data.msg || "Error liking spot");
+        return;
+      }
+
+      setLocalSpot((prev) => ({
+        ...prev,
+        liked: data.liked,
+        likes: data.likes,
+      }));
+    } catch (err) {
+      console.error("Network error liking spot", err);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${localSpot.id}/favorite`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data.msg || "Error saving spot");
+        return;
+      }
+
+      setLocalSpot((prev) => ({
+        ...prev,
+        saved: data.saved,
+        favorites: data.favorites,
+      }));
+    } catch (err) {
+      console.error("Network error saving spot", err);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareText = `${localSpot.titulo || "Spot"} - ${
+      localSpot.descripcion || "Check this spot on Spotly"
+    }`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: localSpot.titulo || "Spotly Spot",
+          text: shareText,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        alert("Spot copied to clipboard");
+      }
+    } catch (err) {
+      console.error("Error sharing spot", err);
+    }
   };
 
   return (
@@ -58,7 +138,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
         </button>
 
         <div className="spot-details-hero">
-          <img src={activeImage} alt={spot.titulo || "Spot"} />
+          <img src={activeImage} alt={localSpot.titulo || "Spot"} />
         </div>
 
         {images.length > 1 && (
@@ -78,38 +158,49 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
         <div className="spot-details-body">
           <div className="spot-details-title-row">
             <div>
-              <h2>{spot.titulo || spot.title || "Untitled Spot"}</h2>
+              <h2>{localSpot.titulo || localSpot.title || "Untitled Spot"}</h2>
 
               <p className="spot-details-location">
                 <MapPin size={17} />
-                {spot.location || "Location not specified"}
+                {localSpot.location || "Location not specified"}
               </p>
             </div>
 
             <span className="spot-details-category">
-              {spot.category || "Spot"}
+              {localSpot.category || "Spot"}
             </span>
           </div>
 
           <div className="spot-details-actions-row">
-            <button>
-              <Heart size={19} />
-              {spot.likes || 0}
+            <button onClick={toggleLike}>
+              <Heart
+                size={19}
+                fill={localSpot.liked ? "#ef3340" : "none"}
+                color={localSpot.liked ? "#ef3340" : "currentColor"}
+              />
+              {localSpot.likes || 0}
             </button>
 
-            <button>
-              <Bookmark size={19} />
-              Save
+            <button onClick={toggleFavorite}>
+              <Bookmark
+                size={19}
+                fill={localSpot.saved ? "#ef3340" : "none"}
+                color={localSpot.saved ? "#ef3340" : "currentColor"}
+              />
+              
+              {localSpot.favorites ? ` ${localSpot.favorites}` : ""}
             </button>
 
-            <button>
+            <button onClick={handleShare}>
               <Share2 size={19} />
               Share
             </button>
           </div>
 
           <p className="spot-details-description">
-            {spot.descripcion || spot.description || "No description available."}
+            {localSpot.descripcion ||
+              localSpot.description ||
+              "No description available."}
           </p>
 
           <div className="spot-details-author">
@@ -119,9 +210,9 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
 
             <div>
               <strong>
-                {spot.user?.nombre ||
-                  spot.creator?.nombre ||
-                  spot.author?.nombre ||
+                {localSpot.user?.nombre ||
+                  localSpot.creator?.nombre ||
+                  localSpot.author?.nombre ||
                   "Spotly User"}
               </strong>
               <p>Spot creator</p>
@@ -131,7 +222,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
           {hasLocation && (
             <div className="spot-details-map">
               <MapContainer
-                center={[spot.latitude, spot.longitude]}
+                center={[localSpot.latitude, localSpot.longitude]}
                 zoom={14}
                 scrollWheelZoom={false}
                 style={{ height: "100%", width: "100%" }}
@@ -145,8 +236,8 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
                   }
                 />
 
-                <Marker position={[spot.latitude, spot.longitude]}>
-                  <Popup>{spot.titulo || "Spot"}</Popup>
+                <Marker position={[localSpot.latitude, localSpot.longitude]}>
+                  <Popup>{localSpot.titulo || "Spot"}</Popup>
                 </Marker>
               </MapContainer>
             </div>

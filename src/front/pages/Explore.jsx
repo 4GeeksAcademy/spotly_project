@@ -55,6 +55,18 @@ export const Explore = () => {
     );
   };
 
+  const updateSpotFavorite = (spotId, saved, favorites) => {
+    setSpots((prevSpots) =>
+      prevSpots.map((spot) =>
+        spot.id === spotId ? { ...spot, saved, favorites } : spot
+      )
+    );
+
+    setSelectedSpot((prevSpot) =>
+      prevSpot?.id === spotId ? { ...prevSpot, saved, favorites } : prevSpot
+    );
+  };
+
   const toggleLike = async (spotId) => {
     try {
       const response = await fetch(
@@ -77,6 +89,31 @@ export const Explore = () => {
       updateSpotLike(spotId, data.liked, data.likes);
     } catch (err) {
       console.error("Network error liking spot", err);
+    }
+  };
+
+  const toggleFavorite = async (spotId) => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}/favorite`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data.msg || "Error saving spot");
+        return;
+      }
+
+      updateSpotFavorite(spotId, data.saved, data.favorites);
+    } catch (err) {
+      console.error("Network error saving spot", err);
     }
   };
 
@@ -207,8 +244,15 @@ export const Explore = () => {
                       <div className="explore-card-overlay">
                         <span>{spot.category || "Spot"}</span>
 
-                        <button>
-                          <Bookmark size={18} />
+                        <button
+                          onClick={() => toggleFavorite(spot.id)}
+                          title={spot.saved ? "Remove from saved" : "Save spot"}
+                        >
+                          <Bookmark
+                            size={18}
+                            fill={spot.saved ? "#ef3340" : "none"}
+                            color={spot.saved ? "#ef3340" : "currentColor"}
+                          />
                         </button>
                       </div>
 
@@ -231,6 +275,18 @@ export const Explore = () => {
                               color={spot.liked ? "#ef3340" : "currentColor"}
                             />
                             {spot.likes || 0}
+                          </button>
+
+                          <button
+                            className="like-btn"
+                            onClick={() => toggleFavorite(spot.id)}
+                          >
+                            <Bookmark
+                              size={17}
+                              fill={spot.saved ? "#ef3340" : "none"}
+                              color={spot.saved ? "#ef3340" : "currentColor"}
+                            />
+                            {spot.favorites || 0}
                           </button>
 
                           <button onClick={() => setSelectedSpot(spot)}>

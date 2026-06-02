@@ -185,15 +185,49 @@ export const Dashboard = () => {
         prevSpots.map((spot) =>
           spot.id === spotId
             ? {
-                ...spot,
-                liked: data.liked,
-                likes: data.likes,
-              }
+              ...spot,
+              liked: data.liked,
+              likes: data.likes,
+            }
             : spot
         )
       );
     } catch (err) {
       console.error("Network error liking spot", err);
+    }
+  };
+  const toggleFavorite = async (spotId) => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}/favorite`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data.msg || "Error saving spot");
+        return;
+      }
+
+      setSpots((prevSpots) =>
+        prevSpots.map((spot) =>
+          spot.id === spotId
+            ? {
+              ...spot,
+              saved: data.saved,
+              favorites: data.favorites,
+            }
+            : spot
+        )
+      );
+    } catch (err) {
+      console.error("Network error saving spot", err);
     }
   };
 
@@ -418,9 +452,17 @@ export const Dashboard = () => {
                   <Share2 size={20} /> 0
                 </span>
 
-                <span>
-                  <Bookmark size={20} />
-                </span>
+                <button
+                  className="like-btn"
+                  onClick={() => toggleFavorite(spot.id)}
+                >
+                  <Bookmark
+                    size={20}
+                    fill={spot.saved ? "#ff5a5f" : "none"}
+                    color={spot.saved ? "#ff5a5f" : "currentColor"}
+                  />
+                  {spot.favorites || 0}
+                </button>
               </div>
 
               {/* ── INYECTA LA CAJA CONDICIONADA AQUÍ (ABAJO DE POST-ACTIONS) ── */}
