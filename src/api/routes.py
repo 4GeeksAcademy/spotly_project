@@ -367,3 +367,56 @@ def delete_spot(spot_id):
     return jsonify({
         "msg": "Spot eliminado correctamente"
     }), 200
+
+
+
+
+
+
+
+# ── Carlos ENDPOINTS DE COMENTARIOS PARA SPOTS ──────────────────
+from api.models import Comment
+
+@api.route('/spots/<int:spot_id>/comments', methods=['GET'])
+@jwt_required()
+def get_spot_comments(spot_id):
+    spot = Spot.query.get(spot_id)
+    if not spot:
+        return jsonify({"msg": "Spot no encontrado"}), 404
+
+    comments = Comment.query.filter_by(spot_id=spot_id).order_by(Comment.created_at.asc()).all()
+    return jsonify([{
+        "id": c.id,
+        "contenido": c.contenido,
+        "created_at": c.created_at.isoformat() if c.created_at else None,
+        "user_id": c.user_id,
+        "autor": f"{c.user.nombre} {c.user.apellido}".strip() if c.user else "Usuario"
+    } for c in comments]), 200
+
+@api.route('/spots/<int:spot_id>/comments', methods=['POST'])
+@jwt_required()
+def add_spot_comment(spot_id):
+    current_user_id = get_jwt_identity()
+    body = request.get_json()
+    
+    if not body or "contenido" not in body:
+        return jsonify({"msg": "El campo contenido es obligatorio"}), 400
+        
+    spot = Spot.query.get(spot_id)
+    if not spot:
+        return jsonify({"msg": "Spot no encontrado"}), 404
+        
+    nuevo_comentario = Comment(
+        contenido=body["contenido"],
+        user_id=int(current_user_id),
+        spot_id=spot_id
+    )
+    db.session.add(nuevo_comentario)
+    db.session.commit()
+    
+    return jsonify({
+        "id": nuevo_comentario.id,
+        "contenido": nuevo_comentario.contenido,
+        "autor": f"{nuevo_comentario.user.nombre} {nuevo_comentario.user.apellido}".strip() if nuevo_comentario.user else "Usuario"
+    }), 201
+
