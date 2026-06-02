@@ -27,20 +27,28 @@ class User(db.Model):
         server_default="user"
     )
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
     updated_at = db.Column(
         db.TIMESTAMP,
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp()
     )
 
-    spots = db.relationship("Spot", back_populates="user", cascade="all, delete-orphan", lazy=True)
-    comments = db.relationship("Comment", back_populates="user", cascade="all, delete-orphan", lazy=True)
-    ratings = db.relationship("Rating", back_populates="user", cascade="all, delete-orphan", lazy=True)
-    favorites = db.relationship("Favorite", back_populates="user", cascade="all, delete-orphan", lazy=True)
-    likes = db.relationship("Like", back_populates="user", cascade="all, delete-orphan", lazy=True)
-    views = db.relationship("View", back_populates="user", cascade="all, delete-orphan", lazy=True)
-    posts = db.relationship("Post", back_populates="user", cascade="all, delete-orphan", lazy=True)
+    spots = db.relationship("Spot", back_populates="user",
+                            cascade="all, delete-orphan", lazy=True)
+    comments = db.relationship(
+        "Comment", back_populates="user", cascade="all, delete-orphan", lazy=True)
+    ratings = db.relationship(
+        "Rating", back_populates="user", cascade="all, delete-orphan", lazy=True)
+    favorites = db.relationship(
+        "Favorite", back_populates="user", cascade="all, delete-orphan", lazy=True)
+    likes = db.relationship("Like", back_populates="user",
+                            cascade="all, delete-orphan", lazy=True)
+    views = db.relationship("View", back_populates="user",
+                            cascade="all, delete-orphan", lazy=True)
+    posts = db.relationship("Post", back_populates="user",
+                            cascade="all, delete-orphan", lazy=True)
 
     def serialize(self):
         return {
@@ -74,7 +82,8 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), unique=True, nullable=False)
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
     updated_at = db.Column(
         db.TIMESTAMP,
         server_default=func.current_timestamp(),
@@ -101,7 +110,8 @@ class Spot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey(
+        "categories.id"), nullable=False)
 
     titulo = db.Column(db.String(200), nullable=False)
     descripcion = db.Column(db.Text)
@@ -110,7 +120,8 @@ class Spot(db.Model):
 
     rating_promedio = db.Column(DECIMAL(3, 2), server_default="0.00")
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
     updated_at = db.Column(
         db.TIMESTAMP,
         server_default=func.current_timestamp(),
@@ -119,13 +130,20 @@ class Spot(db.Model):
 
     user = db.relationship("User", back_populates="spots")
     category = db.relationship("Category", back_populates="spots")
-    images = db.relationship("SpotImage", back_populates="spot", cascade="all, delete-orphan", lazy=True)
-    comments = db.relationship("Comment", back_populates="spot", cascade="all, delete-orphan", lazy=True)
-    ratings = db.relationship("Rating", back_populates="spot", cascade="all, delete-orphan", lazy=True)
-    favorites = db.relationship("Favorite", back_populates="spot", cascade="all, delete-orphan", lazy=True)
-    likes = db.relationship("Like", back_populates="spot", cascade="all, delete-orphan", lazy=True)
-    views = db.relationship("View", back_populates="spot", cascade="all, delete-orphan", lazy=True)
-    posts = db.relationship("Post", back_populates="spot", cascade="all, delete-orphan", lazy=True)
+    images = db.relationship(
+        "SpotImage", back_populates="spot", cascade="all, delete-orphan", lazy=True)
+    comments = db.relationship(
+        "Comment", back_populates="spot", cascade="all, delete-orphan", lazy=True)
+    ratings = db.relationship(
+        "Rating", back_populates="spot", cascade="all, delete-orphan", lazy=True)
+    favorites = db.relationship(
+        "Favorite", back_populates="spot", cascade="all, delete-orphan", lazy=True)
+    likes = db.relationship("Like", back_populates="spot",
+                            cascade="all, delete-orphan", lazy=True)
+    views = db.relationship("View", back_populates="spot",
+                            cascade="all, delete-orphan", lazy=True)
+    posts = db.relationship("Post", back_populates="spot",
+                            cascade="all, delete-orphan", lazy=True)
 
     def serialize(self, current_user_id=None):
         return {
@@ -161,7 +179,8 @@ class SpotImage(db.Model):
     spot_id = db.Column(db.Integer, db.ForeignKey("spots.id"), nullable=False)
     image_url = db.Column(db.String(500), nullable=False)
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
 
     spot = db.relationship("Spot", back_populates="images")
 
@@ -193,7 +212,8 @@ class Comment(db.Model):
 
     contenido = db.Column(db.Text, nullable=False)
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
     updated_at = db.Column(
         db.TIMESTAMP,
         server_default=func.current_timestamp(),
@@ -230,12 +250,16 @@ class Comment(db.Model):
 # =========================================================
 # RATINGS
 # =========================================================
+
+
 class Rating(db.Model):
     __tablename__ = "ratings"
 
     __table_args__ = (
-        CheckConstraint("valor >= 1 AND valor <= 5", name="check_rating_value"),
-        db.UniqueConstraint("user_id", "spot_id", name="unique_user_spot_rating"),
+        CheckConstraint("valor >= 1 AND valor <= 5",
+                        name="check_rating_value"),
+        db.UniqueConstraint("user_id", "spot_id",
+                            name="unique_user_spot_rating"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -245,7 +269,8 @@ class Rating(db.Model):
 
     valor = db.Column(DECIMAL(3, 2), nullable=False)
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
     updated_at = db.Column(
         db.TIMESTAMP,
         server_default=func.current_timestamp(),
@@ -274,7 +299,8 @@ class Favorite(db.Model):
     __tablename__ = "favorites"
 
     __table_args__ = (
-        db.UniqueConstraint("user_id", "spot_id", name="unique_user_spot_favorite"),
+        db.UniqueConstraint("user_id", "spot_id",
+                            name="unique_user_spot_favorite"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -282,7 +308,8 @@ class Favorite(db.Model):
     spot_id = db.Column(db.Integer, db.ForeignKey("spots.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
 
     spot = db.relationship("Spot", back_populates="favorites")
     user = db.relationship("User", back_populates="favorites")
@@ -303,7 +330,8 @@ class Like(db.Model):
     __tablename__ = "likes"
 
     __table_args__ = (
-        db.UniqueConstraint("user_id", "spot_id", name="unique_user_spot_like"),
+        db.UniqueConstraint("user_id", "spot_id",
+                            name="unique_user_spot_like"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -311,7 +339,8 @@ class Like(db.Model):
     spot_id = db.Column(db.Integer, db.ForeignKey("spots.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
 
     spot = db.relationship("Spot", back_populates="likes")
     user = db.relationship("User", back_populates="likes")
@@ -332,7 +361,8 @@ class View(db.Model):
     __tablename__ = "views"
 
     __table_args__ = (
-        db.UniqueConstraint("user_id", "spot_id", name="unique_user_spot_view"),
+        db.UniqueConstraint("user_id", "spot_id",
+                            name="unique_user_spot_view"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -340,7 +370,8 @@ class View(db.Model):
     spot_id = db.Column(db.Integer, db.ForeignKey("spots.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
 
     spot = db.relationship("Spot", back_populates="views")
     user = db.relationship("User", back_populates="views")
@@ -368,7 +399,8 @@ class Post(db.Model):
     titulo = db.Column(db.String(200), nullable=False)
     contenido = db.Column(db.Text, nullable=False)
 
-    created_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp())
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
     updated_at = db.Column(
         db.TIMESTAMP,
         server_default=func.current_timestamp(),
@@ -388,4 +420,66 @@ class Post(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "user": self.user.serialize_public() if self.user else None,
+        }
+
+ # =========================================================
+# NOTIFICATIONS
+# =========================================================
+class Notification(db.Model):
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    recipient_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False
+    )
+    sender_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False
+    )
+    spot_id = db.Column(
+        db.Integer, db.ForeignKey("spots.id"), nullable=True
+    )
+    comment_id = db.Column(
+        db.Integer, db.ForeignKey("comments.id"), nullable=True
+    )
+
+    type = db.Column(db.String(50), nullable=False, default="comment")
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, nullable=False, default=False)
+
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp()
+    )
+
+    recipient = db.relationship(
+        "User",
+        foreign_keys=[recipient_id],
+        backref="received_notifications"
+    )
+
+    sender = db.relationship(
+        "User",
+        foreign_keys=[sender_id],
+        backref="sent_notifications"
+    )
+
+    spot = db.relationship("Spot")
+    comment = db.relationship("Comment")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "recipient_id": self.recipient_id,
+            "sender_id": self.sender_id,
+            "spot_id": self.spot_id,
+            "comment_id": self.comment_id,
+            "type": self.type,
+            "message": self.message,
+            "is_read": self.is_read,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "sender": self.sender.serialize_public() if self.sender else None,
+            "spot": {
+                "id": self.spot.id,
+                "titulo": self.spot.titulo
+            } if self.spot else None,
         }

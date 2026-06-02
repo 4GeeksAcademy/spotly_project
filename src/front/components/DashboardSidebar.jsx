@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { MapPin, Bell, User, Home, Compass, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
@@ -5,6 +6,32 @@ import useGlobalReducer from "../hooks/useGlobalReducer";
 export const DashboardSidebar = () => {
   const navigate = useNavigate();
   const { store, dispatch } = useGlobalReducer();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  useEffect(() => {
+    const getUnreadNotifications = async () => {
+      try {
+        if (!store.token) return;
+
+        const response = await fetch(`${backendUrl}/api/notifications/unread-count`, {
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        setUnreadCount(data.count || 0);
+      } catch (error) {
+        console.error("Error cargando notificaciones:", error);
+      }
+    };
+
+    getUnreadNotifications();
+  }, [store.token]);
 
   return (
     <aside className="dashboard-sidebar">
@@ -29,8 +56,16 @@ export const DashboardSidebar = () => {
           <MapPin size={20} /> Spots
         </a>
 
-        <a>
-          <Bell size={20} /> Notifications
+        <a onClick={() => navigate("/notifications")} className="notifications-link">
+          <div className="notifications-icon-wrapper">
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="notifications-badge">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          Notifications
         </a>
 
         <a onClick={() => navigate("/profile")}>
