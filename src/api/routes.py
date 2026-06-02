@@ -1,5 +1,5 @@
 from flask import request, jsonify, Blueprint
-from api.models import db, User, Spot, SpotImage, Category, Like, Favorite
+from api.models import db, User, Spot, SpotImage, Category, Like, Comment, Favorite, Rating, View
 from flask_jwt_extended import (
     create_access_token,
     jwt_required,
