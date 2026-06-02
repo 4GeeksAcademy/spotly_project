@@ -438,7 +438,6 @@ body {
   border-radius: 50%;
 }
 
-
 .create-post-actions {
   display: flex;
   align-items: center;
@@ -616,8 +615,7 @@ body {
   border-radius: 18px;
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    #eef2f7;
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), #eef2f7;
   background-size: 38px 38px;
   position: relative;
   overflow: hidden;
@@ -628,10 +626,22 @@ body {
   position: absolute;
 }
 
-.fake-map svg:nth-child(1) { top: 30px; left: 60px; }
-.fake-map svg:nth-child(2) { top: 90px; left: 140px; }
-.fake-map svg:nth-child(3) { top: 55px; right: 70px; }
-.fake-map svg:nth-child(4) { bottom: 35px; right: 130px; }
+.fake-map svg:nth-child(1) {
+  top: 30px;
+  left: 60px;
+}
+.fake-map svg:nth-child(2) {
+  top: 90px;
+  left: 140px;
+}
+.fake-map svg:nth-child(3) {
+  top: 55px;
+  right: 70px;
+}
+.fake-map svg:nth-child(4) {
+  bottom: 35px;
+  right: 130px;
+}
 
 /* ================================
    EXPLORE PAGE
@@ -1088,7 +1098,7 @@ body.dark-mode .theme-toggle-btn {
   padding: 14px;
   border: none;
   border-radius: 14px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
   font-weight: 700;
   transition: 0.2s ease;
@@ -1151,7 +1161,7 @@ body.dark-mode .spot-action-btn {
   transition: all 260ms ease;
 }
 
-.spot-details-modal.dark {
+.spot-details-modal.dark-mode {
   background: #111827;
   color: #f9fafb;
 }
@@ -1227,7 +1237,7 @@ body.dark-mode .spot-action-btn {
   font-weight: 600;
 }
 
-.spot-details-modal.dark .spot-details-location {
+.spot-details-modal.dark-mode .spot-details-location {
   color: #9ca3af;
 }
 
@@ -1260,7 +1270,7 @@ body.dark-mode .spot-action-btn {
   font-weight: 800;
 }
 
-.spot-details-modal.dark .spot-details-actions-row button {
+.spot-details-modal.dark-mode .spot-details-actions-row button {
   background: #1f2937;
   color: white;
   border-color: #374151;
@@ -1272,7 +1282,7 @@ body.dark-mode .spot-action-btn {
   color: #374151;
 }
 
-.spot-details-modal.dark .spot-details-description {
+.spot-details-modal.dark-mode .spot-details-description {
   color: #d1d5db;
 }
 
@@ -1286,7 +1296,7 @@ body.dark-mode .spot-action-btn {
   background: #f9fafb;
 }
 
-.spot-details-modal.dark .spot-details-author {
+.spot-details-modal.dark-mode .spot-details-author {
   background: #0b0f17;
 }
 
@@ -1313,7 +1323,7 @@ body.dark-mode .spot-action-btn {
   border: 1px solid #e5e7eb;
 }
 
-.spot-details-modal.dark .spot-details-map {
+.spot-details-modal.dark-mode .spot-details-map {
   border-color: #374151;
 }
 

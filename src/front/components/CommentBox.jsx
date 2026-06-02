@@ -5,6 +5,8 @@ export const CommentBox = ({ spotId, token }) => {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
     const [replyingTo, setReplyingTo] = useState(null);
+    const [editingComment, setEditingComment] = useState(null);
+    const [editText, setEditText] = useState("");
 
     const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -51,6 +53,54 @@ export const CommentBox = ({ spotId, token }) => {
             .catch(err => console.error("Error publicando comentario:", err));
     };
 
+    const startEdit = (comment) => {
+        setEditingComment(comment);
+        setEditText(comment.contenido);
+        setReplyingTo(null);
+    };
+
+    const cancelEdit = () => {
+        setEditingComment(null);
+        setEditText("");
+    };
+
+    const saveEdit = () => {
+        if (!editingComment || !editText.trim()) return;
+
+        fetch(`${API_URL}api/comments/${editingComment.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ contenido: editText })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.id) {
+                    setEditingComment(null);
+                    setEditText("");
+                    getComments();
+                }
+            })
+            .catch(err => console.error("Error editando comentario:", err));
+    };
+
+    const deleteComment = (commentId) => {
+        const confirmDelete = window.confirm("¿Seguro que quieres eliminar este comentario?");
+        if (!confirmDelete) return;
+
+        fetch(`${API_URL}api/comments/${commentId}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+            .then(res => res.json())
+            .then(() => getComments())
+            .catch(err => console.error("Error eliminando comentario:", err));
+    };
+
     const getAuthorName = (comment) => {
         if (comment.autor) return comment.autor;
 
@@ -59,6 +109,22 @@ export const CommentBox = ({ spotId, token }) => {
         }
 
         return "Usuario";
+    };
+
+    const renderActions = (comment) => {
+        if (!comment.can_edit) return null;
+
+        return (
+            <div className="comment__actions">
+                <button type="button" onClick={() => startEdit(comment)}>
+                    Editar
+                </button>
+
+                <button type="button" onClick={() => deleteComment(comment.id)}>
+                    Eliminar
+                </button>
+            </div>
+        );
     };
 
     return (
@@ -87,17 +153,48 @@ export const CommentBox = ({ spotId, token }) => {
 
                             <div className="comment__content">
                                 <div className="comment__bubble">
-                                    <strong>@{getAuthorName(comment)}</strong>
-                                    <p>{comment.contenido}</p>
+                                    <div className="comment__top">
+                                        <strong>@{getAuthorName(comment)}</strong>
+                                        {renderActions(comment)}
+                                    </div>
+
+                                    {editingComment?.id === comment.id ? (
+                                        <div className="edit-box">
+                                            <input
+                                                type="text"
+                                                value={editText}
+                                                onChange={(e) => setEditText(e.target.value)}
+                                                autoFocus
+                                            />
+
+                                            <div className="edit-box__actions">
+                                                <button type="button" onClick={cancelEdit}>
+                                                    Cancelar
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={saveEdit}
+                                                    disabled={!editText.trim()}
+                                                >
+                                                    Guardar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p>{comment.contenido}</p>
+                                    )}
                                 </div>
 
-                                <button
-                                    type="button"
-                                    className="comment__reply-btn"
-                                    onClick={() => setReplyingTo(comment)}
-                                >
-                                    Responder
-                                </button>
+                                {editingComment?.id !== comment.id && (
+                                    <button
+                                        type="button"
+                                        className="comment__reply-btn"
+                                        onClick={() => setReplyingTo(comment)}
+                                    >
+                                        Responder
+                                    </button>
+                                )}
 
                                 {comment.replies && comment.replies.length > 0 && (
                                     <div className="comment__replies">
@@ -108,8 +205,37 @@ export const CommentBox = ({ spotId, token }) => {
                                                 </div>
 
                                                 <div className="reply__bubble">
-                                                    <strong>@{getAuthorName(reply)}</strong>
-                                                    <p>{reply.contenido}</p>
+                                                    <div className="comment__top">
+                                                        <strong>@{getAuthorName(reply)}</strong>
+                                                        {renderActions(reply)}
+                                                    </div>
+
+                                                    {editingComment?.id === reply.id ? (
+                                                        <div className="edit-box">
+                                                            <input
+                                                                type="text"
+                                                                value={editText}
+                                                                onChange={(e) => setEditText(e.target.value)}
+                                                                autoFocus
+                                                            />
+
+                                                            <div className="edit-box__actions">
+                                                                <button type="button" onClick={cancelEdit}>
+                                                                    Cancelar
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={saveEdit}
+                                                                    disabled={!editText.trim()}
+                                                                >
+                                                                    Guardar
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p>{reply.contenido}</p>
+                                                    )}
                                                 </div>
                                             </article>
                                         ))}

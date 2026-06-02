@@ -30,6 +30,7 @@
     max-height: 360px;
     overflow-y: auto;
     padding: 18px;
+    background: #ffffff;
 }
 
 .comment-box__empty {
@@ -85,6 +86,13 @@
     padding: 10px 12px;
 }
 
+.comment__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .comment__bubble strong,
 .reply__bubble strong {
     display: block;
@@ -117,63 +125,6 @@
     color: #ef4444;
 }
 
-.reply-form {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.comment-box__form {
-    display: flex;
-    gap: 10px;
-    padding: 14px 18px;
-    background: #f9fafb;
-    border-top: 1px solid #f1f5f9;
-}
-
-.reply-form input,
-.comment-box__form input {
-    flex: 1;
-    min-width: 0;
-    border: 1px solid #e5e7eb;
-    border-radius: 999px;
-    padding: 10px 14px;
-    font-size: 13px;
-    outline: none;
-    background: white;
-    color: #111827;
-}
-
-.reply-form input:focus,
-.comment-box__form input:focus {
-    border-color: #ef4444;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
-}
-
-.reply-form button,
-.comment-box__form button {
-    border: none;
-    border-radius: 999px;
-    padding: 10px 16px;
-    background: #ef4444;
-    color: white;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: 0.2s ease;
-}
-
-.reply-form button:hover,
-.comment-box__form button:hover {
-    background: #dc2626;
-}
-
-.reply-form button:disabled,
-.comment-box__form button:disabled {
-    background: #d1d5db;
-    cursor: not-allowed;
-}
-
 .comment__replies {
     margin-top: 12px;
     margin-left: 14px;
@@ -201,56 +152,52 @@
     padding: 9px 11px;
 }
 
-/* Dark mode compatible con tu proyecto */
-.dark .comment-box {
-    background: #09090b;
-    border-color: #27272a;
-    box-shadow: none;
+.comment-box__form {
+    display: flex;
+    gap: 10px;
+    padding: 14px 18px;
+    background: #f9fafb;
+    border-top: 1px solid #f1f5f9;
 }
 
-.dark .comment-box__header {
-    border-bottom-color: #18181b;
+.comment-box__form input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-size: 13px;
+    outline: none;
+    background: #ffffff;
+    color: #111827;
 }
 
-.dark .comment-box__header h4 {
-    color: #f9fafb;
+.comment-box__form input:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
-.dark .comment-box__list {
-    background: #09090b;
+.comment-box__form button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.2s ease;
 }
 
-.dark .comment__bubble,
-.dark .reply__bubble {
-    background: #18181b;
-    border-color: #27272a;
+.comment-box__form button:hover {
+    background: #dc2626;
 }
 
-.dark .comment__bubble strong,
-.dark .reply__bubble strong {
-    color: #f9fafb;
+.comment-box__form button:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
 }
 
-.dark .comment__bubble p,
-.dark .reply__bubble p {
-    color: #d1d5db;
-}
-
-.dark .comment-box__form {
-    background: #09090b;
-    border-top-color: #18181b;
-}
-
-.dark .reply-form input,
-.dark .comment-box__form input {
-    background: #18181b;
-    border-color: #27272a;
-    color: #f9fafb;
-}
-
-.dark .comment__replies {
-    border-left-color: #27272a;
-}
 .reply-banner {
     display: flex;
     align-items: center;
@@ -274,8 +221,216 @@
     cursor: pointer;
 }
 
-.dark .reply-banner {
-    background: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.25);
-    color: #f87171;
+.comment__actions {
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: 0.2s ease;
+}
+
+.comment__bubble:hover .comment__actions,
+.reply__bubble:hover .comment__actions {
+    opacity: 1;
+}
+
+.comment__actions button {
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+}
+
+.comment__actions button:hover {
+    color: #ef4444;
+}
+
+.edit-box {
+    margin-top: 8px;
+}
+
+.edit-box input {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 9px 13px;
+    font-size: 13px;
+    outline: none;
+}
+
+.edit-box input:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.edit-box__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.edit-box__actions button {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.edit-box__actions button:first-child {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.edit-box__actions button:last-child {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.edit-box__actions button:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+}
+
+/* DARK MODE - compatible con .dark, body.dark y html.dark */
+
+.dark-mode .comment-box,
+body.dark-mode .comment-box,
+html.dark-mode .comment-box {
+    background: #111827 !important;
+    border-color: #24324d !important;
+    box-shadow: none !important;
+}
+
+.dark-mode .comment-box__header,
+body.dark-mode .comment-box__header,
+html.dark-mode .comment-box__header {
+    background: #111827 !important;
+    border-bottom-color: #24324d !important;
+}
+
+.dark-mode .comment-box__header h4,
+body.dark-mode .comment-box__header h4,
+html.dark-mode .comment-box__header h4 {
+    color: #f8fafc !important;
+}
+
+.dark-mode .comment-box__header span,
+body.dark-mode .comment-box__header span,
+html.dark-mode .comment-box__header span {
+    color: #94a3b8 !important;
+}
+
+.dark-mode .comment-box__list,
+body.dark-mode .comment-box__list,
+html.dark-mode .comment-box__list {
+    background: #111827 !important;
+}
+
+.dark-mode .comment__bubble,
+.dark-mode .reply__bubble,
+body.dark-mode .comment__bubble,
+body.dark-mode .reply__bubble,
+html.dark-mode .comment__bubble,
+html.dark-mode .reply__bubble {
+    background: #172033 !important;
+    border-color: #273750 !important;
+}
+
+.dark-mode .comment__bubble strong,
+.dark-mode .reply__bubble strong,
+body.dark-mode .comment__bubble strong,
+body.dark-mode .reply__bubble strong,
+html.dark-mode .comment__bubble strong,
+html.dark-mode .reply__bubble strong {
+    color: #f8fafc !important;
+}
+
+.dark-mode .comment__bubble p,
+.dark-mode .reply__bubble p,
+body.dark-mode .comment__bubble p,
+body.dark-mode .reply__bubble p,
+html.dark-mode .comment__bubble p,
+html.dark-mode .reply__bubble p {
+    color: #cbd5e1 !important;
+}
+
+.dark-mode .comment-box__form,
+body.dark-mode .comment-box__form,
+html.dark-mode .comment-box__form {
+    background: #111827 !important;
+    border-top-color: #24324d !important;
+}
+
+.dark-mode .comment-box__form input,
+body.dark-mode .comment-box__form input,
+html.dark-mode .comment-box__form input {
+    background: #172033 !important;
+    border-color: #ef4444 !important;
+    color: #f8fafc !important;
+}
+
+.dark-mode .comment-box__form input::placeholder,
+body.dark-mode .comment-box__form input::placeholder,
+html.dark-mode .comment-box__form input::placeholder {
+    color: #94a3b8 !important;
+}
+
+.dark-mode .comment__replies,
+body.dark-mode .comment__replies,
+html.dark-mode .comment__replies {
+    border-left-color: #334155 !important;
+}
+
+.dark-mode .comment__avatar,
+body.dark-mode .comment__avatar,
+html.dark-mode .comment__avatar {
+    background: rgba(239, 68, 68, 0.16) !important;
+    color: #f87171 !important;
+}
+
+.dark-mode .reply__avatar,
+body.dark-mode .reply__avatar,
+html.dark-mode .reply__avatar {
+    background: #253044 !important;
+    color: #cbd5e1 !important;
+}
+
+.dark-mode .reply-banner,
+body.dark-mode .reply-banner,
+html.dark-mode .reply-banner {
+    background: rgba(239, 68, 68, 0.08) !important;
+    border-color: rgba(239, 68, 68, 0.25) !important;
+    color: #f87171 !important;
+}
+
+.dark-mode .comment__actions button,
+body.dark-mode .comment__actions button,
+html.dark-mode .comment__actions button {
+    color: #94a3b8 !important;
+}
+
+.dark-mode .comment__actions button:hover,
+body.dark-mode .comment__actions button:hover,
+html.dark-mode .comment__actions button:hover {
+    color: #f87171 !important;
+}
+
+.dark-mode .edit-box input,
+body.dark-mode .edit-box input,
+html.dark-mode .edit-box input {
+    background: #172033 !important;
+    border-color: #273750 !important;
+    color: #f8fafc !important;
+}
+
+.dark-mode .edit-box__actions button:first-child,
+body.dark-mode .edit-box__actions button:first-child,
+html.dark-mode .edit-box__actions button:first-child {
+    background: #253044 !important;
+    color: #d4d4d8 !important;
 }
