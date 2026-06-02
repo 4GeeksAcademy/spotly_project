@@ -1,5 +1,5 @@
 from flask import request, jsonify, Blueprint
-from api.models import db, User, Spot, SpotImage, Category, Like, Comment, Favorite, Rating, View
+from api.models import db, User, Spot, SpotImage, Category, Like, Comment, Favorite, Rating, View, Notification
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -112,7 +112,6 @@ def profile():
     return jsonify(user.serialize()), 200
 
 
-# ── CREAR SPOT ──────────────────────────────────────────
 @api.route("/spots", methods=["POST"])
 @jwt_required()
 def create_spot():
@@ -159,7 +158,6 @@ def create_spot():
     }), 201
 
 
-# ── LISTAR SPOTS ────────────────────────────────────────
 @api.route("/spots", methods=["GET"])
 @jwt_required()
 def get_spots():
@@ -173,7 +171,6 @@ def get_spots():
     ]), 200
 
 
-# ── LIKE / UNLIKE SPOT ──────────────────────────────────
 @api.route("/spots/<int:spot_id>/like", methods=["POST"])
 @jwt_required()
 def toggle_like(spot_id):
@@ -197,8 +194,23 @@ def toggle_like(spot_id):
             user_id=current_user_id,
             spot_id=spot_id
         )
+
         db.session.add(new_like)
         liked = True
+
+        if spot.user_id != current_user_id:
+            sender = User.query.get(current_user_id)
+
+            notification = Notification(
+                recipient_id=spot.user_id,
+                sender_id=current_user_id,
+                spot_id=spot.id,
+                comment_id=None,
+                type="like",
+                message=f"{sender.nombre} le dio like a tu spot: {spot.titulo}"
+            )
+
+            db.session.add(notification)
 
     db.session.commit()
 
@@ -210,7 +222,6 @@ def toggle_like(spot_id):
     }), 200
 
 
-# ── FAVORITE / UNFAVORITE SPOT ──────────────────────────
 @api.route("/spots/<int:spot_id>/favorite", methods=["POST"])
 @jwt_required()
 def toggle_favorite(spot_id):
@@ -247,7 +258,6 @@ def toggle_favorite(spot_id):
     }), 200
 
 
-# ── ELIMINAR SPOT ───────────────────────────────────────
 @api.route("/spots/<int:spot_id>", methods=["DELETE"])
 @jwt_required()
 def delete_spot(spot_id):
@@ -269,7 +279,6 @@ def delete_spot(spot_id):
     return jsonify({"msg": "Spot eliminado correctamente"}), 200
 
 
-# ── LISTAR USUARIOS ─────────────────────────────────────
 @api.route("/users", methods=["GET"])
 @jwt_required()
 def get_users():
@@ -287,7 +296,6 @@ def get_users():
     ]), 200
 
 
-# ── COMENTARIOS ─────────────────────────────────────────
 @api.route("/spots/<int:spot_id>/comments", methods=["GET"])
 @jwt_required()
 def get_spot_comments(spot_id):
@@ -336,6 +344,22 @@ def add_spot_comment(spot_id):
     )
 
     db.session.add(nuevo_comentario)
+    db.session.flush()
+
+    if spot.user_id != current_user_id:
+        sender = User.query.get(current_user_id)
+
+        notification = Notification(
+            recipient_id=spot.user_id,
+            sender_id=current_user_id,
+            spot_id=spot.id,
+            comment_id=nuevo_comentario.id,
+            type="comment",
+            message=f"{sender.nombre} comentó en tu spot: {contenido[:80]}"
+        )
+
+        db.session.add(notification)
+
     db.session.commit()
 
     return jsonify(nuevo_comentario.serialize(current_user_id)), 201
@@ -371,6 +395,22 @@ def reply_comment(comment_id):
     )
 
     db.session.add(reply)
+    db.session.flush()
+
+    if parent.user_id != current_user_id:
+        sender = User.query.get(current_user_id)
+
+        notification = Notification(
+            recipient_id=parent.user_id,
+            sender_id=current_user_id,
+            spot_id=parent.spot_id,
+            comment_id=reply.id,
+            type="reply",
+            message=f"{sender.nombre} respondió: {contenido[:80]}"
+        )
+
+        db.session.add(notification)
+
     db.session.commit()
 
     return jsonify(reply.serialize(current_user_id)), 201
@@ -427,7 +467,71 @@ def delete_comment(comment_id):
     return jsonify({"msg": "Comentario eliminado correctamente"}), 200
 
 
-# ── HELPER DE SERIALIZACIÓN ─────────────────────────────
+@api.route("/notifications", methods=["GET"])
+@jwt_required()
+def get_notifications():
+    current_user_id = int(get_jwt_identity())
+
+    notifications = Notification.query.filter_by(
+        recipient_id=current_user_id
+    ).order_by(Notification.created_at.desc()).all()
+
+    return jsonify([
+        notification.serialize()
+        for notification in notifications
+    ]), 200
+
+
+@api.route("/notifications/unread-count", methods=["GET"])
+@jwt_required()
+def get_unread_notifications_count():
+    current_user_id = int(get_jwt_identity())
+
+    count = Notification.query.filter_by(
+        recipient_id=current_user_id,
+        is_read=False
+    ).count()
+
+    return jsonify({"count": count}), 200
+
+
+@api.route("/notifications/<int:notification_id>/read", methods=["PUT"])
+@jwt_required()
+def mark_notification_as_read(notification_id):
+    current_user_id = int(get_jwt_identity())
+
+    notification = Notification.query.get(notification_id)
+
+    if not notification:
+        return jsonify({"msg": "Notificación no encontrada"}), 404
+
+    if notification.recipient_id != current_user_id:
+        return jsonify({"msg": "No autorizado"}), 403
+
+    notification.is_read = True
+    db.session.commit()
+
+    return jsonify(notification.serialize()), 200
+
+
+@api.route("/notifications/read-all", methods=["PUT"])
+@jwt_required()
+def mark_all_notifications_as_read():
+    current_user_id = int(get_jwt_identity())
+
+    notifications = Notification.query.filter_by(
+        recipient_id=current_user_id,
+        is_read=False
+    ).all()
+
+    for notification in notifications:
+        notification.is_read = True
+
+    db.session.commit()
+
+    return jsonify({"msg": "Notificaciones marcadas como leídas"}), 200
+
+
 def _serialize_spot(spot, current_user_id=None):
     lat, lng = None, None
 

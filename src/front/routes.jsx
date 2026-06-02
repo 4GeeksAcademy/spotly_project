@@ -17,6 +17,7 @@ import { Explore } from "./pages/Explore.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { SpotModal } from "./pages/SpotModal";
 import { Profile } from "./pages/Profile";
+import { Notifications } from "./pages/Notifications";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -49,6 +50,15 @@ export const router = createBrowserRouter(
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
           </ProtectedRoute>
         }
       />
