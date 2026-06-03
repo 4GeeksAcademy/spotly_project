@@ -9,6 +9,11 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  X,
+  Copy,
+  Mail,
+  Send,
+  Globe,
 } from "lucide-react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
@@ -123,6 +128,9 @@ export const Dashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [openComments, setOpenComments] = useState({});
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedSpot, setSelectedSpot] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const toggleComments = (spotId) => {
     setOpenComments((prev) => ({ ...prev, [spotId]: !prev[spotId] }));
@@ -153,6 +161,38 @@ export const Dashboard = () => {
       }
     } catch (err) {
       console.error("Error cargando notificaciones:", err);
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/notifications/${notification.id}/read`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notification.id ? { ...n, is_read: true } : n
+        )
+      );
+
+      setUnreadCount((prev) =>
+        notification.is_read ? prev : Math.max(prev - 1, 0)
+      );
+
+      setShowNotifications(false);
+
+      if (notification.spot_id) {
+        navigate(`/single/${notification.spot_id}`);
+      }
+    } catch (error) {
+      console.error("Error opening notification:", error);
     }
   };
 
@@ -196,6 +236,75 @@ export const Dashboard = () => {
     } catch (err) {
       console.error("Error cargando usuarios:", err);
     }
+  };
+
+  const getSpotUrl = (spotId) => `${window.location.origin}/single/${spotId}`;
+
+  const getShareText = (spot) => {
+    return `Check out this Spotly spot: ${spot?.titulo || "Spot"}`;
+  };
+
+  const openShareModal = (spot) => {
+    setSelectedSpot(spot);
+    setCopied(false);
+    setShowShareModal(true);
+  };
+
+  const closeShareModal = () => {
+    setShowShareModal(false);
+    setSelectedSpot(null);
+    setCopied(false);
+  };
+
+  const copySpotLink = async () => {
+    if (!selectedSpot) return;
+
+    try {
+      await navigator.clipboard.writeText(getSpotUrl(selectedSpot.id));
+      setCopied(true);
+    } catch (error) {
+      console.error("Error copying link:", error);
+      alert("Could not copy link");
+    }
+  };
+
+  const nativeShareSpot = async () => {
+    if (!selectedSpot) return;
+
+    const spotUrl = getSpotUrl(selectedSpot.id);
+    const text = getShareText(selectedSpot);
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: selectedSpot.titulo,
+          text,
+          url: spotUrl,
+        });
+      } catch (error) {
+        console.error("Native share cancelled or failed:", error);
+      }
+    } else {
+      await copySpotLink();
+    }
+  };
+
+  const openShareWindow = (platform) => {
+    if (!selectedSpot) return;
+
+    const spotUrl = encodeURIComponent(getSpotUrl(selectedSpot.id));
+    const text = encodeURIComponent(getShareText(selectedSpot));
+
+    const urls = {
+      whatsapp: `https://wa.me/?text=${text}%20${spotUrl}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${spotUrl}`,
+      x: `https://twitter.com/intent/tweet?text=${text}&url=${spotUrl}`,
+      telegram: `https://t.me/share/url?url=${spotUrl}&text=${text}`,
+      email: `mailto:?subject=${encodeURIComponent(selectedSpot.titulo)}&body=${text}%0A%0A${spotUrl}`,
+      instagram: `https://www.instagram.com/`,
+    };
+
+    window.open(urls[platform], "_blank", "noopener,noreferrer");
   };
 
   const toggleLike = async (spotId) => {
@@ -384,6 +493,8 @@ export const Dashboard = () => {
                         className={`notifications-dropdown-item ${
                           notification.is_read ? "read" : "unread"
                         }`}
+                        onClick={() => handleNotificationClick(notification)}
+                        style={{ cursor: "pointer" }}
                       >
                         <p>{notification.message}</p>
                         <span>
@@ -538,9 +649,12 @@ export const Dashboard = () => {
                   <MessageCircle size={20} />
                 </button>
 
-                <span>
-                  <Share2 size={20} /> 0
-                </span>
+                <button
+                  className="like-btn"
+                  onClick={() => openShareModal(spot)}
+                >
+                  <Share2 size={20} />
+                </button>
 
                 <button
                   className="like-btn"
@@ -629,6 +743,65 @@ export const Dashboard = () => {
           </div>
         </div>
       </aside>
+
+      {showShareModal && selectedSpot && (
+        <div className="share-modal-overlay" onClick={closeShareModal}>
+          <div className="share-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="share-modal-header">
+              <div>
+                <h3>Share spot</h3>
+                <p>{selectedSpot.titulo}</p>
+              </div>
+
+              <button onClick={closeShareModal}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="share-options">
+              <button onClick={() => openShareWindow("whatsapp")}>
+                <Send size={20} />
+                WhatsApp
+              </button>
+
+              <button onClick={() => openShareWindow("facebook")}>
+                <Globe size={20} />
+                Facebook
+              </button>
+
+              <button onClick={() => openShareWindow("x")}>
+                <X size={20} />
+                X / Twitter
+              </button>
+
+              <button onClick={() => openShareWindow("telegram")}>
+                <Send size={20} />
+                Telegram
+              </button>
+
+              <button onClick={() => openShareWindow("email")}>
+                <Mail size={20} />
+                Email
+              </button>
+
+              <button onClick={() => openShareWindow("instagram")}>
+                <Globe size={20} />
+                Instagram
+              </button>
+
+              <button onClick={nativeShareSpot}>
+                <Share2 size={20} />
+                More options
+              </button>
+
+              <button onClick={copySpotLink}>
+                <Copy size={20} />
+                {copied ? "Copied!" : "Copy link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SpotModal
         isOpen={showSpot}
