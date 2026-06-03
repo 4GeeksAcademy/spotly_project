@@ -99,7 +99,7 @@ export const CommentBox = ({ spotId, token }) => {
     };
 
     const deleteComment = (commentId) => {
-        const confirmDelete = window.confirm("¿Seguro que quieres eliminar este comentario?");
+        const confirmDelete = window.confirm("You are deleting this comment, are you sure?");
         if (!confirmDelete) return;
 
         fetch(`${API_URL}api/comments/${commentId}`, {
@@ -129,11 +129,11 @@ export const CommentBox = ({ spotId, token }) => {
         return (
             <div className="comment__actions">
                 <button type="button" onClick={() => startEdit(comment)}>
-                    Editar
+                    Edit
                 </button>
 
                 <button type="button" onClick={() => deleteComment(comment.id)}>
-                    Eliminar
+                    Delete
                 </button>
             </div>
         );
@@ -143,7 +143,7 @@ export const CommentBox = ({ spotId, token }) => {
         <section className="comment-box">
             <div className="comment-box__header">
                 <div>
-                    <h4>Comentarios</h4>
+                    <h4>Comments</h4>
                     <span>
                         {comments.length} {comments.length === 1 ? "comentario" : "comentarios"}
                     </span>
@@ -153,8 +153,8 @@ export const CommentBox = ({ spotId, token }) => {
             <div className="comment-box__list">
                 {comments.length === 0 ? (
                     <div className="comment-box__empty">
-                        <p>Sin comentarios aún.</p>
-                        <small>Sé el primero en comentar este spot.</small>
+                        <p>No comments yet.</p>
+                        <small>Be the first comment on this post!</small>
                     </div>
                 ) : (
                     comments.map(comment => (
@@ -181,7 +181,7 @@ export const CommentBox = ({ spotId, token }) => {
 
                                             <div className="edit-box__actions">
                                                 <button type="button" onClick={cancelEdit}>
-                                                    Cancelar
+                                                    Cancel
                                                 </button>
 
                                                 <button
@@ -189,7 +189,7 @@ export const CommentBox = ({ spotId, token }) => {
                                                     onClick={saveEdit}
                                                     disabled={!editText.trim()}
                                                 >
-                                                    Guardar
+                                                    Save
                                                 </button>
                                             </div>
                                         </div>
@@ -204,7 +204,7 @@ export const CommentBox = ({ spotId, token }) => {
                                         className="comment__reply-btn"
                                         onClick={() => setReplyingTo(comment)}
                                     >
-                                        Responder
+                                        Reply
                                     </button>
                                 )}
 
@@ -233,7 +233,7 @@ export const CommentBox = ({ spotId, token }) => {
 
                                                             <div className="edit-box__actions">
                                                                 <button type="button" onClick={cancelEdit}>
-                                                                    Cancelar
+                                                                    Cancel
                                                                 </button>
 
                                                                 <button
@@ -241,7 +241,7 @@ export const CommentBox = ({ spotId, token }) => {
                                                                     onClick={saveEdit}
                                                                     disabled={!editText.trim()}
                                                                 >
-                                                                    Guardar
+                                                                    Save
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -261,7 +261,7 @@ export const CommentBox = ({ spotId, token }) => {
 
             {replyingTo && (
                 <div className="reply-banner">
-                    <span>Respondiendo a @{getAuthorName(replyingTo)}</span>
+                    <span>Replying to @{getAuthorName(replyingTo)}</span>
 
                     <button
                         type="button"

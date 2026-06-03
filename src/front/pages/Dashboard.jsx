@@ -573,7 +573,7 @@ export const Dashboard = () => {
                 {canDelete(spot) && (
                   <button
                     onClick={() => handleDelete(spot.id)}
-                    title="Eliminar spot"
+                    title="Delete spot"
                     style={{
                       marginLeft: "auto",
                       background: "none",

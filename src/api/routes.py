@@ -398,7 +398,7 @@ def reply_comment(comment_id):
         return jsonify({"msg": "Comment not found"}), 404
 
     if parent.parent_id is not None:
-        return jsonify({"msg": "Solo puedes responder comentarios principales"}), 400
+        return jsonify({"msg": "You can reply just the main comments"}), 400
 
     reply = Comment(
         contenido=contenido,
@@ -419,7 +419,7 @@ def reply_comment(comment_id):
             spot_id=parent.spot_id,
             comment_id=reply.id,
             type="reply",
-            message=f"{sender.nombre} respondió: {contenido[:80]}"
+            message=f"{sender.nombre} replied: {contenido[:80]}"
         )
 
         db.session.add(notification)
@@ -477,7 +477,7 @@ def delete_comment(comment_id):
     db.session.delete(comment)
     db.session.commit()
 
-    return jsonify({"msg": "Comentario eliminado correctamente"}), 200
+    return jsonify({"msg": "Comentario deleted"}), 200
 
 
 @api.route("/notifications", methods=["GET"])
