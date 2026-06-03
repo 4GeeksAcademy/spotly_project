@@ -9,8 +9,8 @@ export const Layout = () => {
   const location = useLocation();
   const { store } = useGlobalReducer();
 
-  const hideNavbarRoutes = ["/dashboard", "/explore", "/profile"];
-  const darkModeRoutes = ["/dashboard", "/explore", "/profile"];
+  const hideNavbarRoutes = ["/dashboard", "/explore", "/profile", "/notifications"];
+  const darkModeRoutes = ["/dashboard", "/explore", "/profile", "/notifications"];
 
   useEffect(() => {
     const shouldUseDarkMode =

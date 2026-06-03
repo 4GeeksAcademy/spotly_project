@@ -50,17 +50,17 @@ export const Register = () => {
     <div className="bg-light min-vh-100 d-flex justify-content-center align-items-center py-5">
       <div className="card shadow p-4 border-0 rounded-4" style={{ width: "430px" }}>
         <h2 className="text-center mb-2 text-danger">
-          Crear cuenta
+          Sign up
         </h2>
 
         <p className="text-center text-muted mb-4">
-          Únete a Spotly y empieza a descubrir lugares.
+          Join Spotly and find incredible spots!
         </p>
 
         <form onSubmit={handleSubmit}>
           <div className="row">
             <div className="col-6 mb-3">
-              <label>Nombre</label>
+              <label>Name</label>
               <input
                 type="text"
                 name="nombre"
@@ -72,7 +72,7 @@ export const Register = () => {
             </div>
 
             <div className="col-6 mb-3">
-              <label>Apellido</label>
+              <label>Last name</label>
               <input
                 type="text"
                 name="apellido"
@@ -97,7 +97,7 @@ export const Register = () => {
           </div>
 
           <div className="mb-3">
-            <label>Contraseña</label>
+            <label>Password</label>
             <input
               type="password"
               name="password"
@@ -109,7 +109,7 @@ export const Register = () => {
           </div>
 
           <div className="mb-3">
-            <label>Teléfono</label>
+            <label>Phone Number</label>
             <input
               type="text"
               name="telefono"
@@ -120,7 +120,7 @@ export const Register = () => {
           </div>
 
           <div className="mb-3">
-            <label>País</label>
+            <label>Country</label>
             <input
               type="text"
               name="pais"
@@ -131,29 +131,29 @@ export const Register = () => {
           </div>
 
           <div className="mb-4">
-            <label>Género</label>
+            <label>Gender</label>
             <select
               name="genero"
               className="form-control"
               value={formData.genero}
               onChange={handleChange}
             >
-              <option value="">Selecciona una opción</option>
-              <option value="masculino">Masculino</option>
-              <option value="femenino">Femenino</option>
-              <option value="otro">Otro</option>
+              <option value="">Select</option>
+              <option value="masculino">Male</option>
+              <option value="femenino">Female</option>
+              <option value="otro">Others</option>
             </select>
           </div>
 
           <button className="btn btn-danger w-100">
-            Crear cuenta
+            Create the account
           </button>
         </form>
 
         <div className="text-center mt-3">
-          <span className="text-muted">¿Ya tienes cuenta? </span>
+          <span className="text-muted">¿Do you have an account? </span>
           <Link to="/login" className="text-danger">
-            Inicia sesión
+            LOG IN
           </Link>
         </div>
       </div>
