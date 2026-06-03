@@ -16,8 +16,6 @@ export const Profile = () => {
   const { store } = useGlobalReducer();
 
   const [editing, setEditing] = useState(false);
-  const [following, setFollowing] = useState(false);
-  const [followers, setFollowers] = useState(0);
   const [activeTab, setActiveTab] = useState("posts");
 
   const [spots, setSpots] = useState([]);
@@ -71,11 +69,6 @@ export const Profile = () => {
     (total, spot) => total + (spot.favorites || 0),
     0
   );
-
-  const handleFollow = () => {
-    setFollowing(!following);
-    setFollowers((prev) => (following ? prev - 1 : prev + 1));
-  };
 
   return (
     <div className="spotly-dashboard">
@@ -137,19 +130,22 @@ export const Profile = () => {
                   {editing ? "Save Profile" : "Edit Profile"}
                 </button>
 
-                <button
-                  className="follow-btn"
-                  onClick={handleFollow}
-                >
-                  {following ? "Following" : "Follow"}
-                </button>
+                <label className="settings-btn">
+                 <Settings size={22} />
 
-                <button
-                  className="settings-btn"
-                  onClick={() => alert("Settings panel coming soon ⚙️")}
-                >
-                  <Settings size={22} />
-                </button>
+                 <input
+                 type="file"
+                 accept="image/*"
+                 hidden
+                 onChange={(e) => {
+                 const file = e.target.files[0];
+
+                if (file) {
+                  setProfileImage(URL.createObjectURL(file));
+                }
+               }}
+                />
+              </label>
               </div>
 
               <div className="profile-stats">
@@ -158,7 +154,7 @@ export const Profile = () => {
                 </span>
 
                 <span>
-                  <strong>{followers}</strong> followers
+                  <strong>0</strong> followers
                 </span>
 
                 <span>
@@ -204,24 +200,6 @@ export const Profile = () => {
                 )}
               </div>
             </div>
-          </section>
-
-          <section className="profile-highlights">
-            {["Travel", "Coffee", "Nature"].map((item, index) => {
-              const image =
-                myPosts[index]?.images?.[0] ||
-                "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900";
-
-              return (
-                <div className="highlight-item" key={item}>
-                  <div className="highlight-circle">
-                    <img src={image} alt={item} />
-                  </div>
-
-                  <p>{item}</p>
-                </div>
-              );
-            })}
           </section>
 
           <section className="profile-tabs">
