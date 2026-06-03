@@ -2,7 +2,6 @@ import {
   Settings,
   Grid3X3,
   Bookmark,
-  UserRound,
   BadgeCheck,
   Ellipsis
 } from "lucide-react";
@@ -130,22 +129,23 @@ export const Profile = () => {
                   {editing ? "Save Profile" : "Edit Profile"}
                 </button>
 
-                <label className="settings-btn">
-                 <Settings size={22} />
+                <label className="settings-btn" title="Change profile photo">
+  <Settings size={22} />
+  <span>Photo</span>
 
-                 <input
-                 type="file"
-                 accept="image/*"
-                 hidden
-                 onChange={(e) => {
-                 const file = e.target.files[0];
+  <input
+    type="file"
+    accept="image/*"
+    hidden
+    onChange={(e) => {
+      const file = e.target.files[0];
 
-                if (file) {
-                  setProfileImage(URL.createObjectURL(file));
-                }
-               }}
-                />
-              </label>
+      if (file) {
+        setProfileImage(URL.createObjectURL(file));
+      }
+    }}
+  />
+</label>
               </div>
 
               <div className="profile-stats">
@@ -217,14 +217,6 @@ export const Profile = () => {
             >
               <Bookmark size={18} />
               SAVED
-            </button>
-
-            <button
-              className={activeTab === "tagged" ? "active" : ""}
-              onClick={() => setActiveTab("tagged")}
-            >
-              <UserRound size={18} />
-              TAGGED
             </button>
           </section>
 
