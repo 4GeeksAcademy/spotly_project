@@ -34,23 +34,35 @@ export const CommentBox = ({ spotId, token }) => {
             ? `${API_URL}api/comments/${replyingTo.id}/reply`
             : `${API_URL}api/spots/${spotId}/comments`;
 
-        fetch(endpoint, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({ contenido: newComment })
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.id) {
-                    setNewComment("");
-                    setReplyingTo(null);
-                    getComments();
-                }
-            })
-            .catch(err => console.error("Error publicando comentario:", err));
+     fetch(endpoint, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ contenido: newComment })
+})
+    .then(async (res) => {
+        const data = await res.json();
+
+        console.log("STATUS:", res.status);
+        console.log("RESPONSE:", data);
+
+        if (!res.ok) {
+            alert(data.msg || "Error creando comentario");
+            return null;
+        }
+
+        return data;
+    })
+    .then(data => {
+        if (data?.id) {
+            setNewComment("");
+            setReplyingTo(null);
+            getComments();
+        }
+    })
+    .catch(err => console.error("Error publicando comentario:", err));
     };
 
     const startEdit = (comment) => {

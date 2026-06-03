@@ -54,7 +54,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
 
       navigate("/dashboard");
     } else {
-      alert("Usuario creado correctamente");
+      alert("Welcome to Spotly!");
       navigate("/login");
     }
   };
@@ -63,7 +63,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
     <div className="bg-light min-vh-100 d-flex justify-content-center align-items-center">
       <div className="card shadow p-4 border-0 rounded-4" style={{ width: "380px" }}>
         <h2 className="text-center mb-4 text-danger">
-          {mode === "login" ? "Iniciar Sesión" : "Registro"}
+          {mode === "login" ? "LOG IN" : "Registro"}
         </h2>
 
         {mode === "login" && (
@@ -80,7 +80,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
             </div>
 
             <div className="mb-3">
-              <label>Contraseña</label>
+              <label>Password</label>
               <input
                 type="password"
                 name="password"
@@ -95,7 +95,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
         {mode === "register" && (
           <>
             <div className="mb-3">
-              <label>Nombre</label>
+              <label>Name</label>
               <input
                 type="text"
                 name="nombre"
@@ -106,7 +106,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
             </div>
 
             <div className="mb-3">
-              <label>Apellido</label>
+              <label>Last name</label>
               <input
                 type="text"
                 name="apellido"
@@ -128,7 +128,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
             </div>
 
             <div className="mb-3">
-              <label>Contraseña</label>
+              <label>Password</label>
               <input
                 type="password"
                 name="password"
@@ -141,7 +141,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
         )}
 
         <button className="btn btn-danger w-100" onClick={handleSubmit}>
-          {mode === "login" ? "Entrar" : "Crear cuenta"}
+          {mode === "login" ? "Log in" : "Crear cuenta"}
         </button>
 
         <button
@@ -151,7 +151,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
             else navigate("/");
           }}
         >
-          Cerrar
+          Close
         </button>
       </div>
     </div>

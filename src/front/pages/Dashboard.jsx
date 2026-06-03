@@ -511,7 +511,7 @@ export const Dashboard = () => {
                       className="notifications-view-more"
                       onClick={() => navigate("/notifications")}
                     >
-                      Ver más
+                      See all...
                     </button>
                   )}
                 </div>

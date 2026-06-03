@@ -170,6 +170,7 @@ def get_spots():
         for spot in spots
     ]), 200
 
+
 @api.route("/spots/<int:spot_id>", methods=["GET"])
 @jwt_required()
 def get_single_spot(spot_id):
@@ -219,7 +220,7 @@ def toggle_like(spot_id):
                 spot_id=spot.id,
                 comment_id=None,
                 type="like",
-                message=f"{sender.nombre} le dio like a tu spot: {spot.titulo}"
+                message=f"{sender.nombre} liked your spot: {spot.titulo}"
             )
 
             db.session.add(notification)
@@ -338,15 +339,15 @@ def add_spot_comment(spot_id):
     contenido = body.get("contenido", "").strip()
 
     if not contenido:
-        return jsonify({"msg": "El campo contenido es obligatorio"}), 400
+        return jsonify({"msg": "You might write something"}), 400
 
     if len(contenido) > 500:
-        return jsonify({"msg": "El comentario no puede pasar de 500 caracteres"}), 400
+        return jsonify({"msg": "Comment can not be more than 500 characters"}), 400
 
     spot = Spot.query.get(spot_id)
 
     if not spot:
-        return jsonify({"msg": "Spot no encontrado"}), 404
+        return jsonify({"msg": "Spot not found"}), 404
 
     nuevo_comentario = Comment(
         contenido=contenido,
@@ -367,7 +368,7 @@ def add_spot_comment(spot_id):
             spot_id=spot.id,
             comment_id=nuevo_comentario.id,
             type="comment",
-            message=f"{sender.nombre} comentó en tu spot: {contenido[:80]}"
+            message=f"{sender.nombre} commented your spot: {contenido[:80]}"
         )
 
         db.session.add(notification)
@@ -386,7 +387,7 @@ def reply_comment(comment_id):
     contenido = body.get("contenido", "").strip()
 
     if not contenido:
-        return jsonify({"msg": "La respuesta no puede estar vacía"}), 400
+        return jsonify({"msg": "Answer can not be empty"}), 400
 
     if len(contenido) > 500:
         return jsonify({"msg": "La respuesta no puede pasar de 500 caracteres"}), 400
@@ -394,7 +395,7 @@ def reply_comment(comment_id):
     parent = Comment.query.get(comment_id)
 
     if not parent:
-        return jsonify({"msg": "Comentario no encontrado"}), 404
+        return jsonify({"msg": "Comment not found"}), 404
 
     if parent.parent_id is not None:
         return jsonify({"msg": "Solo puedes responder comentarios principales"}), 400
