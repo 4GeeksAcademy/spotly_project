@@ -511,7 +511,7 @@ export const Dashboard = () => {
                       className="notifications-view-more"
                       onClick={() => navigate("/notifications")}
                     >
-                      Ver más
+                      See all...
                     </button>
                   )}
                 </div>
@@ -573,7 +573,7 @@ export const Dashboard = () => {
                 {canDelete(spot) && (
                   <button
                     onClick={() => handleDelete(spot.id)}
-                    title="Eliminar spot"
+                    title="Delete spot"
                     style={{
                       marginLeft: "auto",
                       background: "none",
