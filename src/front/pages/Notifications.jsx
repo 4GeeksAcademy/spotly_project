@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 
 export const Notifications = () => {
-  const { store } = useGlobalReducer();
+  const { store, dispatch } = useGlobalReducer();
+  const navigate = useNavigate();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const showToast = (message, type = "success") => {
+    dispatch({
+      type: "show_toast",
+      payload: { message, type },
+    });
+  };
 
   const getNotifications = async () => {
     try {
@@ -18,14 +28,17 @@ export const Notifications = () => {
         },
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Error cargando notificaciones");
+        showToast(data.msg || "Error loading notifications", "error");
+        return;
       }
 
-      const data = await response.json();
-      setNotifications(data);
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error cargando notificaciones:", error);
+      console.error("Error loading notifications:", error);
+      showToast("Network error loading notifications", "error");
     } finally {
       setLoading(false);
     }
@@ -43,7 +56,12 @@ export const Notifications = () => {
         }
       );
 
-      if (!response.ok) return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data.msg || "Error marking notification as read", "error");
+        return;
+      }
 
       setNotifications((prev) =>
         prev.map((notification) =>
@@ -52,8 +70,39 @@ export const Notifications = () => {
             : notification
         )
       );
+
+      showToast("Notification marked as read", "success");
     } catch (error) {
-      console.error("Error marcando notificación:", error);
+      console.error("Error marking notification:", error);
+      showToast("Network error marking notification", "error");
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      if (!notification.is_read) {
+        await fetch(`${backendUrl}/api/notifications/${notification.id}/read`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        });
+
+        setNotifications((prev) =>
+          prev.map((item) =>
+            item.id === notification.id ? { ...item, is_read: true } : item
+          )
+        );
+      }
+
+      if (notification.spot_id) {
+        navigate(`/single/${notification.spot_id}`);
+      } else {
+        showToast("This notification has no related spot", "info");
+      }
+    } catch (error) {
+      console.error("Error opening notification:", error);
+      showToast("Error opening notification", "error");
     }
   };
 
@@ -66,7 +115,12 @@ export const Notifications = () => {
         },
       });
 
-      if (!response.ok) return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data.msg || "Error marking all as read", "error");
+        return;
+      }
 
       setNotifications((prev) =>
         prev.map((notification) => ({
@@ -74,8 +128,11 @@ export const Notifications = () => {
           is_read: true,
         }))
       );
+
+      showToast("All notifications marked as read", "success");
     } catch (error) {
-      console.error("Error marcando todas:", error);
+      console.error("Error marking all notifications:", error);
+      showToast("Network error marking notifications", "error");
     }
   };
 
@@ -110,15 +167,16 @@ export const Notifications = () => {
           <div className="notifications-empty">
             <Bell size={36} />
             <h3>No notifications yet</h3>
-            <p>When someone comments on your spot, it will appear here.</p>
+            <p>When someone interacts with your spots, it will appear here.</p>
           </div>
         ) : (
           <div className="notifications-list">
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`notification-card ${notification.is_read ? "read" : "unread"
-                  }`}
+                className={`notification-card ${
+                  notification.is_read ? "read" : "unread"
+                }`}
                 onClick={() => handleNotificationClick(notification)}
                 style={{ cursor: "pointer" }}
               >
@@ -139,7 +197,10 @@ export const Notifications = () => {
                 {!notification.is_read && (
                   <button
                     className="mark-read-btn"
-                    onClick={() => markAsRead(notification.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAsRead(notification.id);
+                    }}
                   >
                     Mark as read
                   </button>

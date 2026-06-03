@@ -4,6 +4,7 @@ export const initialStore = () => {
     token: localStorage.getItem("token") || null,
     user: JSON.parse(localStorage.getItem("user")) || null,
     theme: localStorage.getItem("theme") || "light",
+    toast: null,
   };
 };
 
@@ -47,6 +48,21 @@ export default function storeReducer(store, action = {}) {
         theme: newTheme,
       };
     }
+
+    case "show_toast":
+      return {
+        ...store,
+        toast: {
+          message: action.payload.message,
+          type: action.payload.type || "success",
+        },
+      };
+
+    case "hide_toast":
+      return {
+        ...store,
+        toast: null,
+      };
 
     default:
       throw Error("Unknown action.");

@@ -4,22 +4,23 @@ import {
   Bookmark,
   UserRound,
   BadgeCheck,
-  Ellipsis
+  Ellipsis,
 } from "lucide-react";
 
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import "../components/userProfile.css";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const Profile = () => {
-  const { store } = useGlobalReducer();
+  const { store, dispatch } = useGlobalReducer();
+  const navigate = useNavigate();
 
   const [editing, setEditing] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followers, setFollowers] = useState(0);
   const [activeTab, setActiveTab] = useState("posts");
-
   const [spots, setSpots] = useState([]);
 
   const [profileImage, setProfileImage] = useState(
@@ -29,8 +30,15 @@ export const Profile = () => {
   const [userData, setUserData] = useState({
     username: `${store.user?.nombre || ""} ${store.user?.apellido || ""}`,
     bio: "✨ Exploring new places & capturing moments",
-    location: "📍 Digital nomad"
+    location: "📍 Digital nomad",
   });
+
+  const showToast = (message, type = "success") => {
+    dispatch({
+      type: "show_toast",
+      payload: { message, type },
+    });
+  };
 
   const fetchSpots = async () => {
     try {
@@ -47,9 +55,12 @@ export const Profile = () => {
 
       if (response.ok) {
         setSpots(data.spots || data);
+      } else {
+        showToast(data.msg || "Error loading profile spots", "error");
       }
     } catch (err) {
       console.error("Error loading profile spots:", err);
+      showToast("Network error loading profile spots", "error");
     }
   };
 
@@ -73,8 +84,34 @@ export const Profile = () => {
   );
 
   const handleFollow = () => {
-    setFollowing(!following);
+    setFollowing((prev) => !prev);
     setFollowers((prev) => (following ? prev - 1 : prev + 1));
+    showToast(following ? "User unfollowed" : "User followed", "success");
+  };
+
+  const handleEditProfile = () => {
+    if (editing) {
+      showToast("Profile updated!", "success");
+    }
+
+    setEditing(!editing);
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+
+    if (file) {
+      setProfileImage(URL.createObjectURL(file));
+      showToast("Profile photo updated!", "success");
+    }
+  };
+
+  const handleSettingsClick = () => {
+    showToast("Settings panel coming soon", "info");
+  };
+
+  const openSpot = (spotId) => {
+    navigate(`/single/${spotId}`);
   };
 
   return (
@@ -94,13 +131,7 @@ export const Profile = () => {
                   type="file"
                   accept="image/*"
                   hidden
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-
-                    if (file) {
-                      setProfileImage(URL.createObjectURL(file));
-                    }
-                  }}
+                  onChange={handlePhotoChange}
                 />
               </label>
             </div>
@@ -114,7 +145,7 @@ export const Profile = () => {
                     onChange={(e) =>
                       setUserData({
                         ...userData,
-                        username: e.target.value
+                        username: e.target.value,
                       })
                     }
                   />
@@ -130,24 +161,15 @@ export const Profile = () => {
                   </h2>
                 )}
 
-                <button
-                  className="edit-btn"
-                  onClick={() => setEditing(!editing)}
-                >
+                <button className="edit-btn" onClick={handleEditProfile}>
                   {editing ? "Save Profile" : "Edit Profile"}
                 </button>
 
-                <button
-                  className="follow-btn"
-                  onClick={handleFollow}
-                >
+                <button className="follow-btn" onClick={handleFollow}>
                   {following ? "Following" : "Follow"}
                 </button>
 
-                <button
-                  className="settings-btn"
-                  onClick={() => alert("Settings panel coming soon ⚙️")}
-                >
+                <button className="settings-btn" onClick={handleSettingsClick}>
                   <Settings size={22} />
                 </button>
               </div>
@@ -179,7 +201,7 @@ export const Profile = () => {
                       onChange={(e) =>
                         setUserData({
                           ...userData,
-                          location: e.target.value
+                          location: e.target.value,
                         })
                       }
                     />
@@ -190,7 +212,7 @@ export const Profile = () => {
                       onChange={(e) =>
                         setUserData({
                           ...userData,
-                          bio: e.target.value
+                          bio: e.target.value,
                         })
                       }
                     />
@@ -243,7 +265,10 @@ export const Profile = () => {
 
             <button
               className={activeTab === "tagged" ? "active" : ""}
-              onClick={() => setActiveTab("tagged")}
+              onClick={() => {
+                setActiveTab("tagged");
+                showToast("Tagged spots coming soon", "info");
+              }}
             >
               <UserRound size={18} />
               TAGGED
@@ -258,10 +283,21 @@ export const Profile = () => {
                   "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900";
 
                 return (
-                  <div className="profile-post" key={spot.id}>
+                  <div
+                    className="profile-post"
+                    key={spot.id}
+                    onClick={() => openSpot(spot.id)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <img src={image} alt={spot.titulo || "post"} />
 
-                    <button className="post-menu">
+                    <button
+                      className="post-menu"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        showToast("Post options coming soon", "info");
+                      }}
+                    >
                       <Ellipsis size={20} />
                     </button>
                   </div>
@@ -272,6 +308,8 @@ export const Profile = () => {
                 <p>
                   {activeTab === "saved"
                     ? "No saved spots yet."
+                    : activeTab === "tagged"
+                    ? "No tagged spots yet."
                     : "No posts yet."}
                 </p>
               </div>

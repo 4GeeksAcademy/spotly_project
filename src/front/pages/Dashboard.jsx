@@ -21,6 +21,7 @@ import { useState, useEffect } from "react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { SpotModal } from "./SpotModal";
 import { CommentBox } from "../components/CommentBox";
+import { ConfirmModal } from "../components/ConfirmModal";
 
 const ImageCarousel = ({ images, titulo }) => {
   const [current, setCurrent] = useState(0);
@@ -114,7 +115,7 @@ const ImageCarousel = ({ images, titulo }) => {
 };
 
 export const Dashboard = () => {
-  const { store } = useGlobalReducer();
+  const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
 
   const [showSpot, setShowSpot] = useState(false);
@@ -131,6 +132,14 @@ export const Dashboard = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [spotToDelete, setSpotToDelete] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    dispatch({
+      type: "show_toast",
+      payload: { message, type },
+    });
+  };
 
   const toggleComments = (spotId) => {
     setOpenComments((prev) => ({ ...prev, [spotId]: !prev[spotId] }));
@@ -158,15 +167,18 @@ export const Dashboard = () => {
       if (response.ok) {
         setNotifications(data);
         setUnreadCount(data.filter((notification) => !notification.is_read).length);
+      } else {
+        showToast(data.msg || "Error loading notifications", "error");
       }
     } catch (err) {
-      console.error("Error cargando notificaciones:", err);
+      console.error("Error loading notifications:", err);
+      showToast("Network error loading notifications", "error");
     }
   };
 
   const handleNotificationClick = async (notification) => {
     try {
-      await fetch(
+      const response = await fetch(
         import.meta.env.VITE_BACKEND_URL + `api/notifications/${notification.id}/read`,
         {
           method: "PUT",
@@ -175,6 +187,11 @@ export const Dashboard = () => {
           },
         }
       );
+
+      if (!response.ok) {
+        showToast("Could not open notification", "error");
+        return;
+      }
 
       setNotifications((prev) =>
         prev.map((n) =>
@@ -193,6 +210,7 @@ export const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error opening notification:", error);
+      showToast("Error opening notification", "error");
     }
   };
 
@@ -211,9 +229,12 @@ export const Dashboard = () => {
 
       if (response.ok) {
         setSpots(data);
+      } else {
+        showToast(data.msg || "Error loading spots", "error");
       }
     } catch (err) {
-      console.error("Error cargando spots:", err);
+      console.error("Error loading spots:", err);
+      showToast("Network error loading spots", "error");
     }
   };
 
@@ -232,9 +253,12 @@ export const Dashboard = () => {
 
       if (response.ok) {
         setUsers(data);
+      } else {
+        showToast(data.msg || "Error loading users", "error");
       }
     } catch (err) {
-      console.error("Error cargando usuarios:", err);
+      console.error("Error loading users:", err);
+      showToast("Network error loading users", "error");
     }
   };
 
@@ -262,9 +286,10 @@ export const Dashboard = () => {
     try {
       await navigator.clipboard.writeText(getSpotUrl(selectedSpot.id));
       setCopied(true);
+      showToast("Link copied!", "success");
     } catch (error) {
       console.error("Error copying link:", error);
-      alert("Could not copy link");
+      showToast("Could not copy link", "error");
     }
   };
 
@@ -281,6 +306,8 @@ export const Dashboard = () => {
           text,
           url: spotUrl,
         });
+
+        showToast("Spot shared!", "success");
       } catch (error) {
         console.error("Native share cancelled or failed:", error);
       }
@@ -305,6 +332,7 @@ export const Dashboard = () => {
     };
 
     window.open(urls[platform], "_blank", "noopener,noreferrer");
+    showToast(`Opening ${platform}...`, "info");
   };
 
   const toggleLike = async (spotId) => {
@@ -323,6 +351,7 @@ export const Dashboard = () => {
 
       if (!response.ok) {
         console.error(data.msg || "Error liking spot");
+        showToast(data.msg || "Error liking spot", "error");
         return;
       }
 
@@ -330,15 +359,18 @@ export const Dashboard = () => {
         prevSpots.map((spot) =>
           spot.id === spotId
             ? {
-                ...spot,
-                liked: data.liked,
-                likes: data.likes,
-              }
+              ...spot,
+              liked: data.liked,
+              likes: data.likes,
+            }
             : spot
         )
       );
+
+      showToast(data.liked ? "Spot liked!" : "Like removed", "success");
     } catch (err) {
       console.error("Network error liking spot", err);
+      showToast("Network error liking spot", "error");
     }
   };
 
@@ -358,6 +390,7 @@ export const Dashboard = () => {
 
       if (!response.ok) {
         console.error(data.msg || "Error saving spot");
+        showToast(data.msg || "Error saving spot", "error");
         return;
       }
 
@@ -365,28 +398,36 @@ export const Dashboard = () => {
         prevSpots.map((spot) =>
           spot.id === spotId
             ? {
-                ...spot,
-                saved: data.saved,
-                favorites: data.favorites,
-              }
+              ...spot,
+              saved: data.saved,
+              favorites: data.favorites,
+            }
             : spot
         )
       );
+
+      showToast(data.saved ? "Spot saved!" : "Spot removed from saved", "success");
     } catch (err) {
       console.error("Network error saving spot", err);
+      showToast("Network error saving spot", "error");
     }
   };
 
   const handleSpotCreated = (newSpot) => {
     setSpots((prev) => [newSpot, ...prev]);
+    showToast("Spot created!", "success");
   };
 
-  const handleDelete = async (spotId) => {
-    if (!confirm("¿Seguro que quieres eliminar este spot?")) return;
+  const handleDelete = (spot) => {
+    setSpotToDelete(spot);
+  };
+
+  const confirmDeleteSpot = async () => {
+    if (!spotToDelete) return;
 
     try {
       const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}`,
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotToDelete.id}`,
         {
           method: "DELETE",
           headers: {
@@ -396,16 +437,18 @@ export const Dashboard = () => {
       );
 
       if (response.ok) {
-        setSpots((prev) => prev.filter((s) => s.id !== spotId));
+        setSpots((prev) => prev.filter((s) => s.id !== spotToDelete.id));
+        showToast("Spot deleted!", "success");
+        setSpotToDelete(null);
       } else {
         const data = await response.json();
-        alert(data.msg || "Error al eliminar");
+        showToast(data.msg || "Error deleting spot", "error");
       }
     } catch (err) {
-      alert("Error de red al eliminar el spot");
+      console.error("Network error deleting spot:", err);
+      showToast("Network error deleting spot", "error");
     }
   };
-
   const timeAgo = (isoString) => {
     if (!isoString) return "";
 
@@ -490,9 +533,8 @@ export const Dashboard = () => {
                     notifications.slice(0, 5).map((notification) => (
                       <div
                         key={notification.id}
-                        className={`notifications-dropdown-item ${
-                          notification.is_read ? "read" : "unread"
-                        }`}
+                        className={`notifications-dropdown-item ${notification.is_read ? "read" : "unread"
+                          }`}
                         onClick={() => handleNotificationClick(notification)}
                         style={{ cursor: "pointer" }}
                       >
@@ -572,7 +614,7 @@ export const Dashboard = () => {
 
                 {canDelete(spot) && (
                   <button
-                    onClick={() => handleDelete(spot.id)}
+                    onClick={() => handleDelete(spot)}
                     title="Delete spot"
                     style={{
                       marginLeft: "auto",
@@ -807,6 +849,16 @@ export const Dashboard = () => {
         isOpen={showSpot}
         onClose={() => setShowSpot(false)}
         onSpotCreated={handleSpotCreated}
+      />
+      <ConfirmModal
+        isOpen={!!spotToDelete}
+        title="Delete spot?"
+        message={`Are you sure you want to delete "${spotToDelete?.titulo}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        danger={true}
+        onCancel={() => setSpotToDelete(null)}
+        onConfirm={confirmDeleteSpot}
       />
     </div>
   );

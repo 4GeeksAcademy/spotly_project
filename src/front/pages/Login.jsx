@@ -10,13 +10,20 @@ export const Login = ({ mode = "login", setAuthMode }) => {
     nombre: "",
     apellido: "",
     email: "",
-    password: ""
+    password: "",
   });
+
+  const showToast = (message, type = "success") => {
+    dispatch({
+      type: "show_toast",
+      payload: { message, type },
+    });
+  };
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -27,35 +34,41 @@ export const Login = ({ mode = "login", setAuthMode }) => {
       mode === "login"
         ? {
             email: formData.email,
-            password: formData.password
+            password: formData.password,
           }
         : formData;
 
-    const response = await fetch(import.meta.env.VITE_BACKEND_URL + endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.msg);
-      return;
-    }
-
-    if (mode === "login") {
-      dispatch({
-        type: "login",
-        payload: data
+    try {
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       });
 
-      navigate("/dashboard");
-    } else {
-      alert("Welcome to Spotly!");
-      navigate("/login");
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data.msg || "Something went wrong", "error");
+        return;
+      }
+
+      if (mode === "login") {
+        dispatch({
+          type: "login",
+          payload: data,
+        });
+
+        showToast("Welcome back!", "success");
+        navigate("/dashboard");
+      } else {
+        showToast("Account created! Welcome to Spotly!", "success");
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+      showToast("Network error. Please try again.", "error");
     }
   };
 
@@ -63,7 +76,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
     <div className="bg-light min-vh-100 d-flex justify-content-center align-items-center">
       <div className="card shadow p-4 border-0 rounded-4" style={{ width: "380px" }}>
         <h2 className="text-center mb-4 text-danger">
-          {mode === "login" ? "LOG IN" : "Registro"}
+          {mode === "login" ? "LOG IN" : "Register"}
         </h2>
 
         {mode === "login" && (
@@ -141,7 +154,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
         )}
 
         <button className="btn btn-danger w-100" onClick={handleSubmit}>
-          {mode === "login" ? "Log in" : "Crear cuenta"}
+          {mode === "login" ? "Log in" : "Create account"}
         </button>
 
         <button

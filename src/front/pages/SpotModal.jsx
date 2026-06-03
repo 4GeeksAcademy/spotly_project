@@ -17,11 +17,12 @@ const LocationPicker = ({ onLocationSelect }) => {
       onLocationSelect([e.latlng.lat, e.latlng.lng]);
     },
   });
+
   return null;
 };
 
 export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
-  const { store } = useGlobalReducer();
+  const { store, dispatch } = useGlobalReducer();
 
   const isDark = store.theme === "dark";
 
@@ -45,9 +46,16 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [visible, setVisible] = useState(false);
   const [error, setError] = useState("");
-  const overlayRef = useRef(null);
 
+  const overlayRef = useRef(null);
   const activePosition = selectedPosition || userPosition;
+
+  const showToast = (message, type = "success") => {
+    dispatch({
+      type: "show_toast",
+      payload: { message, type },
+    });
+  };
 
   useEffect(() => {
     if (isOpen) requestAnimationFrame(() => setVisible(true));
@@ -57,10 +65,21 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
   useEffect(() => {
     if (!isOpen) return;
 
-    const watcher = navigator.geolocation.watchPosition((pos) => {
-      const coords = [pos.coords.latitude, pos.coords.longitude];
-      setUserPosition(coords);
-    });
+    if (!navigator.geolocation) {
+      showToast("Geolocation is not supported by this browser", "warning");
+      return;
+    }
+
+    const watcher = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords = [pos.coords.latitude, pos.coords.longitude];
+        setUserPosition(coords);
+      },
+      (err) => {
+        console.error("Geolocation error:", err);
+        showToast("Could not access your location", "warning");
+      }
+    );
 
     return () => navigator.geolocation.clearWatch(watcher);
   }, [isOpen]);
@@ -71,11 +90,13 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
     };
 
     window.addEventListener("keydown", handler);
+
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
+
     return () => {
       document.body.style.overflow = "";
     };
@@ -105,36 +126,57 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
     if (!files.length) return;
 
     setUploadingImages(true);
+    setError("");
 
     try {
       for (const file of files) {
         const formData = new FormData();
         formData.append("image", file);
 
-        const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/upload", {
-          method: "POST",
-          body: formData,
-        });
+        const response = await fetch(
+          import.meta.env.VITE_BACKEND_URL + "api/upload",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
 
         const url = await response.json();
+
+        if (!response.ok) {
+          throw new Error("Image upload failed");
+        }
+
         uploadedUrls.push(url);
       }
 
       setMyImages((prev) => [...prev, ...uploadedUrls]);
+
+      showToast(
+        uploadedUrls.length === 1
+          ? "Image uploaded!"
+          : `${uploadedUrls.length} images uploaded!`,
+        "success"
+      );
     } catch (err) {
-      setError("No se pudieron subir las imágenes.");
+      console.error("Image upload error:", err);
+      setError("Images could not be uploaded.");
+      showToast("Images could not be uploaded", "error");
     } finally {
       setUploadingImages(false);
+      e.target.value = "";
     }
   };
 
   const removeImage = (indexToRemove) => {
     setMyImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+    showToast("Image removed", "info");
   };
 
   const handleSubmit = async () => {
     if (!nombre.trim()) {
-      setError("El nombre del spot es obligatorio.");
+      setError("Spot name is required.");
+      showToast("Spot name is required", "warning");
       return;
     }
 
@@ -160,14 +202,18 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.msg || "Error al crear el spot.");
+        setError(data.msg || "Error creating spot.");
+        showToast(data.msg || "Error creating spot", "error");
         return;
       }
 
       onSpotCreated?.(data.spot);
+      showToast("Spot created!", "success");
       handleClose();
     } catch (err) {
-      setError("Error de red al crear el spot.");
+      console.error("Network error creating spot:", err);
+      setError("Network error creating spot.");
+      showToast("Network error creating spot", "error");
     } finally {
       setLoading(false);
     }
@@ -206,7 +252,9 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          transform: visible ? "translateY(0) scale(1)" : "translateY(24px) scale(0.97)",
+          transform: visible
+            ? "translateY(0) scale(1)"
+            : "translateY(24px) scale(0.97)",
           opacity: visible ? 1 : 0,
           transition: "all 300ms cubic-bezier(0.22,1,0.36,1)",
         }}
@@ -229,6 +277,7 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
             <h2 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 800 }}>
               Create Spot
             </h2>
+
             <p style={{ margin: "4px 0 0", color: colors.muted, fontSize: "0.9rem" }}>
               Posting as <strong>{store.user?.nombre}</strong>
             </p>
@@ -295,7 +344,11 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
               center={mapCenter}
               zoom={13}
               scrollWheelZoom={true}
-              style={{ height: "100%", width: "100%", cursor: "crosshair" }}
+              style={{
+                height: "100%",
+                width: "100%",
+                cursor: "crosshair",
+              }}
             >
               <TileLayer
                 attribution="&copy; OpenStreetMap contributors"
@@ -402,7 +455,14 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
             }}
           >
             <strong style={{ color: colors.text }}>Upload photos</strong>
-            <p style={{ margin: "4px 0 0", color: colors.muted, fontSize: "0.85rem" }}>
+
+            <p
+              style={{
+                margin: "4px 0 0",
+                color: colors.muted,
+                fontSize: "0.85rem",
+              }}
+            >
               Add images to make your spot stand out.
             </p>
 
@@ -482,7 +542,10 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
               fontWeight: 800,
               cursor: loading || uploadingImages ? "not-allowed" : "pointer",
               marginTop: "0.3rem",
-              boxShadow: loading || uploadingImages ? "none" : "0 10px 30px rgba(255,90,95,0.35)",
+              boxShadow:
+                loading || uploadingImages
+                  ? "none"
+                  : "0 10px 30px rgba(255,90,95,0.35)",
             }}
           >
             {loading ? "Publishing..." : "Create Spot"}

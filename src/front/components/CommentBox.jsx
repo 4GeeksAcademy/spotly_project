@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from "react";
 import "../styles/commentBox.css";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+import { ConfirmModal } from "../components/ConfirmModal";
 
 export const CommentBox = ({ spotId, token }) => {
+    const { dispatch } = useGlobalReducer();
+
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
     const [replyingTo, setReplyingTo] = useState(null);
     const [editingComment, setEditingComment] = useState(null);
     const [editText, setEditText] = useState("");
+    const [commentToDelete, setCommentToDelete] = useState(null);
 
     const API_URL = import.meta.env.VITE_BACKEND_URL;
+
+    const showToast = (message, type = "success") => {
+        dispatch({
+            type: "show_toast",
+            payload: { message, type },
+        });
+    };
 
     const getComments = () => {
         if (!spotId || !token) return;
@@ -18,7 +30,10 @@ export const CommentBox = ({ spotId, token }) => {
         })
             .then(res => res.json())
             .then(data => setComments(Array.isArray(data) ? data : []))
-            .catch(err => console.error("Error cargando comentarios:", err));
+            .catch(err => {
+                console.error("Error loading comments:", err);
+                showToast("Error loading comments", "error");
+            });
     };
 
     useEffect(() => {
@@ -30,39 +45,42 @@ export const CommentBox = ({ spotId, token }) => {
 
         if (!newComment.trim()) return;
 
-        const endpoint = replyingTo
+        const isReply = Boolean(replyingTo);
+
+        const endpoint = isReply
             ? `${API_URL}api/comments/${replyingTo.id}/reply`
             : `${API_URL}api/spots/${spotId}/comments`;
 
-     fetch(endpoint, {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({ contenido: newComment })
-})
-    .then(async (res) => {
-        const data = await res.json();
+        fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ contenido: newComment })
+        })
+            .then(async (res) => {
+                const data = await res.json();
 
-        console.log("STATUS:", res.status);
-        console.log("RESPONSE:", data);
+                if (!res.ok) {
+                    showToast(data.msg || "Error posting comment", "error");
+                    return null;
+                }
 
-        if (!res.ok) {
-            alert(data.msg || "Error creando comentario");
-            return null;
-        }
-
-        return data;
-    })
-    .then(data => {
-        if (data?.id) {
-            setNewComment("");
-            setReplyingTo(null);
-            getComments();
-        }
-    })
-    .catch(err => console.error("Error publicando comentario:", err));
+                return data;
+            })
+            .then(data => {
+                if (data?.id) {
+                    setNewComment("");
+                    setReplyingTo(null);
+                    getComments();
+                    showToast(isReply ? "Reply posted!" : "Comment posted!", "success");
+                }
+            })
+            .catch(err => {
+                console.error("Error posting comment:", err);
+                showToast("Network error posting comment", "error");
+            });
     };
 
     const startEdit = (comment) => {
@@ -87,30 +105,64 @@ export const CommentBox = ({ spotId, token }) => {
             },
             body: JSON.stringify({ contenido: editText })
         })
-            .then(res => res.json())
+            .then(async (res) => {
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showToast(data.msg || "Error updating comment", "error");
+                    return null;
+                }
+
+                return data;
+            })
             .then(data => {
-                if (data.id) {
+                if (data?.id) {
                     setEditingComment(null);
                     setEditText("");
                     getComments();
+                    showToast("Comment updated!", "success");
                 }
             })
-            .catch(err => console.error("Error editando comentario:", err));
+            .catch(err => {
+                console.error("Error updating comment:", err);
+                showToast("Network error updating comment", "error");
+            });
     };
 
-    const deleteComment = (commentId) => {
-        const confirmDelete = window.confirm("You are deleting this comment, are you sure?");
-        if (!confirmDelete) return;
+    const deleteComment = (comment) => {
+        setCommentToDelete(comment);
+    };
 
-        fetch(`${API_URL}api/comments/${commentId}`, {
+    const confirmDeleteComment = () => {
+        if (!commentToDelete) return;
+
+        fetch(`${API_URL}api/comments/${commentToDelete.id}`, {
             method: "DELETE",
             headers: {
                 Authorization: `Bearer ${token}`
             }
         })
-            .then(res => res.json())
-            .then(() => getComments())
-            .catch(err => console.error("Error eliminando comentario:", err));
+            .then(async (res) => {
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showToast(data.msg || "Error deleting comment", "error");
+                    return null;
+                }
+
+                return data;
+            })
+            .then(data => {
+                if (data) {
+                    getComments();
+                    showToast("Comment deleted!", "success");
+                    setCommentToDelete(null);
+                }
+            })
+            .catch(err => {
+                console.error("Error deleting comment:", err);
+                showToast("Network error deleting comment", "error");
+            });
     };
 
     const getAuthorName = (comment) => {
@@ -120,7 +172,7 @@ export const CommentBox = ({ spotId, token }) => {
             return `${comment.user.nombre || ""} ${comment.user.apellido || ""}`.trim();
         }
 
-        return "Usuario";
+        return "User";
     };
 
     const renderActions = (comment) => {
@@ -132,7 +184,7 @@ export const CommentBox = ({ spotId, token }) => {
                     Edit
                 </button>
 
-                <button type="button" onClick={() => deleteComment(comment.id)}>
+                <button type="button" onClick={() => deleteComment(comment)}>
                     Delete
                 </button>
             </div>
@@ -145,7 +197,7 @@ export const CommentBox = ({ spotId, token }) => {
                 <div>
                     <h4>Comments</h4>
                     <span>
-                        {comments.length} {comments.length === 1 ? "comentario" : "comentarios"}
+                        {comments.length} {comments.length === 1 ? "comment" : "comments"}
                     </span>
                 </div>
             </div>
@@ -154,7 +206,7 @@ export const CommentBox = ({ spotId, token }) => {
                 {comments.length === 0 ? (
                     <div className="comment-box__empty">
                         <p>No comments yet.</p>
-                        <small>Be the first comment on this post!</small>
+                        <small>Be the first to comment on this post!</small>
                     </div>
                 ) : (
                     comments.map(comment => (
@@ -277,17 +329,27 @@ export const CommentBox = ({ spotId, token }) => {
                     type="text"
                     placeholder={
                         replyingTo
-                            ? `Responder a @${getAuthorName(replyingTo)}...`
-                            : "Escribe un comentario..."
+                            ? `Reply to @${getAuthorName(replyingTo)}...`
+                            : "Write a comment..."
                     }
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                 />
 
                 <button type="submit" disabled={!newComment.trim()}>
-                    Enviar
+                    Send
                 </button>
             </form>
+            <ConfirmModal
+                isOpen={!!commentToDelete}
+                title="Delete comment?"
+                message="Are you sure you want to delete this comment? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                danger={true}
+                onCancel={() => setCommentToDelete(null)}
+                onConfirm={confirmDeleteComment}
+            />
         </section>
     );
 };
