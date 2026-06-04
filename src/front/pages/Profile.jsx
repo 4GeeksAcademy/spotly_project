@@ -10,12 +10,15 @@ import { DashboardSidebar } from "../components/DashboardSidebar";
 import "../components/userProfile.css";
 import { useEffect, useState } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import { useNavigate } from "react-router-dom";
 
 export const Profile = () => {
   const { store } = useGlobalReducer();
+  const navigate = useNavigate();
 
   const [editing, setEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
+  const [showSettings, setShowSettings] = useState(false);
 
   const [spots, setSpots] = useState([]);
 
@@ -129,23 +132,47 @@ export const Profile = () => {
                   {editing ? "Save Profile" : "Edit Profile"}
                 </button>
 
-                <label className="settings-btn" title="Change profile photo">
-  <Settings size={22} />
-  <span>Photo</span>
+                <div className="settings-container">
+                  <button
+                    className="settings-btn"
+                    onClick={() => setShowSettings(!showSettings)}
+                  >
+                    <Settings size={22} />
+                    <span>Settings</span>
+                  </button>
 
-  <input
-    type="file"
-    accept="image/*"
-    hidden
-    onChange={(e) => {
-      const file = e.target.files[0];
+                  {showSettings && (
+                    <div className="settings-menu">
+                      <label className="settings-option">
+                        Change Photo
 
-      if (file) {
-        setProfileImage(URL.createObjectURL(file));
-      }
-    }}
-  />
-</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+
+                            if (file) {
+                              setProfileImage(URL.createObjectURL(file));
+                              setShowSettings(false);
+                            }
+                          }}
+                        />
+                      </label>
+
+                      <button
+                        className="settings-option logout-option"
+                        onClick={() => {
+                          dispatch({ type: "logout" });
+                          navigate("/");
+                        }}
+                      >
+                        Log Out
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="profile-stats">
