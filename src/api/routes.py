@@ -2,6 +2,7 @@ from flask import request, jsonify, Blueprint
 from api.models import db, User, Spot, SpotImage, Category, Like, Comment, Favorite, Rating, View, Notification
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
+from .models import db, Follow, User, Notification
 
 import os
 import cloudinary
@@ -598,3 +599,104 @@ def _serialize_spot(spot, current_user_id=None):
         } if spot.user else None,
         "images": [img.image_url for img in spot.images],
     }
+
+
+@api.route("/users/following", methods=["GET"])
+@jwt_required()
+def get_following():
+    current_user_id = get_jwt_identity()
+    follows = Follow.query.filter_by(follower_id=current_user_id).all()
+    return jsonify([f.followed.serialize_public() for f in follows]), 200
+
+
+# POST /api/users/<id>/follow  → seguir o dejar de seguir
+@api.route("/users/<int:target_id>/follow", methods=["POST"])
+@jwt_required()
+def toggle_follow(target_id):
+    current_user_id = int(get_jwt_identity())
+
+    if current_user_id == target_id:
+        return jsonify({"msg": "No puedes seguirte a ti mismo"}), 400
+
+    target_user = User.query.get(target_id)
+    if not target_user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    existing = Follow.query.filter_by(
+        follower_id=current_user_id,
+        followed_id=target_id
+    ).first()
+
+    if existing:
+        # Ya lo sigue → dejar de seguir
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({"is_following": False}), 200
+    else:
+        # No lo sigue → seguir
+        follow = Follow(follower_id=current_user_id, followed_id=target_id)
+        db.session.add(follow)
+
+        # Notificación al usuario seguido
+        current_user = User.query.get(current_user_id)
+        notification = Notification(
+            recipient_id=target_id,
+            sender_id=current_user_id,
+            type="follow",
+            message=f"{current_user.nombre} {current_user.apellido} started following you",
+        )
+        db.session.add(notification)
+        db.session.commit()
+
+        return jsonify({"is_following": True}), 200
+
+
+# GET /api/users/me/following  → lista de usuarios que sigo
+@api.route("/users/me/following", methods=["GET"])
+@jwt_required()
+def get_my_following():
+    current_user_id = int(get_jwt_identity())
+
+    follows = Follow.query.filter_by(follower_id=current_user_id).all()
+
+    return jsonify([
+        {
+            "id": f.followed.id,
+            "nombre": f.followed.nombre,
+            "apellido": f.followed.apellido,
+        }
+        for f in follows
+    ]), 200
+
+
+@api.route("/users/me/followers", methods=["GET"])
+@jwt_required()
+def get_my_followers():
+    current_user_id = int(get_jwt_identity())
+
+    count = Follow.query.filter_by(followed_id=current_user_id).count()
+
+    return jsonify({"count": count}), 200
+
+
+@api.route("/users/<int:user_id>/followers", methods=["GET"])
+@jwt_required()
+def get_user_followers(user_id):
+    count = Follow.query.filter_by(followed_id=user_id).count()
+    return jsonify({"count": count}), 200
+
+
+@api.route("/users/<int:user_id>", methods=["GET"])
+@jwt_required()
+def get_user_by_id(user_id):
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    return jsonify({
+        "id": user.id,
+        "nombre": user.nombre,
+        "apellido": user.apellido,
+        "tipo_usuario": user.tipo_usuario,
+    }), 200

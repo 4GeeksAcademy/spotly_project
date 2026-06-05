@@ -21,6 +21,7 @@ import { useState, useEffect } from "react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { SpotModal } from "./SpotModal";
 import { CommentBox } from "../components/CommentBox";
+import { FollowButton } from "../components/FollowButton";
 
 const ImageCarousel = ({ images, titulo }) => {
   const [current, setCurrent] = useState(0);
@@ -113,6 +114,8 @@ const ImageCarousel = ({ images, titulo }) => {
   );
 };
 
+
+
 export const Dashboard = () => {
   const { store } = useGlobalReducer();
   const navigate = useNavigate();
@@ -132,6 +135,9 @@ export const Dashboard = () => {
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  const [followingIds, setFollowingIds] = useState([]);
+  const [loadingId, setLoadingId] = useState(null);
+
   const toggleComments = (spotId) => {
     setOpenComments((prev) => ({ ...prev, [spotId]: !prev[spotId] }));
   };
@@ -140,6 +146,7 @@ export const Dashboard = () => {
     fetchSpots();
     fetchUsers();
     fetchNotifications();
+    fetchFollowing();
   }, []);
 
   const fetchNotifications = async () => {
@@ -193,6 +200,25 @@ export const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error opening notification:", error);
+    }
+  };
+
+  const fetchFollowing = async () => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
+        {
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setFollowingIds(data.map((u) => u.id));
+      }
+    } catch (err) {
+      console.error("Error cargando following:", err);
     }
   };
 
@@ -330,10 +356,10 @@ export const Dashboard = () => {
         prevSpots.map((spot) =>
           spot.id === spotId
             ? {
-                ...spot,
-                liked: data.liked,
-                likes: data.likes,
-              }
+              ...spot,
+              liked: data.liked,
+              likes: data.likes,
+            }
             : spot
         )
       );
@@ -365,10 +391,10 @@ export const Dashboard = () => {
         prevSpots.map((spot) =>
           spot.id === spotId
             ? {
-                ...spot,
-                saved: data.saved,
-                favorites: data.favorites,
-              }
+              ...spot,
+              saved: data.saved,
+              favorites: data.favorites,
+            }
             : spot
         )
       );
@@ -435,6 +461,42 @@ export const Dashboard = () => {
     );
   });
 
+  const handleFollowToggle = async (targetUserId) => {
+    if (!store.token) {
+      alert("Debes iniciar sesión para seguir usuarios.");
+      return;
+    }
+
+    setLoadingId(targetUserId);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}api/users/${targetUserId}/follow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${store.token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Si el backend dice que lo empezamos a seguir, lo añadimos a la lista; si no, lo quitamos
+        if (data.is_following) {
+          setFollowingIds((prev) => [...prev, targetUserId]);
+        } else {
+          setFollowingIds((prev) => prev.filter((id) => id !== targetUserId));
+        }
+      } else {
+        console.error(data.msg || "Error al procesar el follow");
+      }
+    } catch (error) {
+      console.error("Error de red al intentar seguir al usuario:", error);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   return (
     <div className="spotly-dashboard">
       <DashboardSidebar />
@@ -490,9 +552,8 @@ export const Dashboard = () => {
                     notifications.slice(0, 5).map((notification) => (
                       <div
                         key={notification.id}
-                        className={`notifications-dropdown-item ${
-                          notification.is_read ? "read" : "unread"
-                        }`}
+                        className={`notifications-dropdown-item ${notification.is_read ? "read" : "unread"
+                          }`}
                         onClick={() => handleNotificationClick(notification)}
                         style={{ cursor: "pointer" }}
                       >
@@ -684,23 +745,34 @@ export const Dashboard = () => {
             <span>All</span>
           </div>
 
-          {users.slice(0, 5).map((user) => (
-            <div className="suggestion" key={user.id}>
-              <img
-                src={`https://i.pravatar.cc/100?u=${user.id}`}
-                alt={user.nombre}
-              />
+          {users.slice(0, 5).map((user) => {
+            const isFollowing = followingIds.includes(user.id);
+            const isLoading = loadingId === user.id;
 
-              <div>
-                <strong>
-                  {user.nombre} {user.apellido}
-                </strong>
-                <p>Spotly user</p>
+            return (
+              <div className="suggestion" key={user.id}>
+                <img
+                  src={`https://i.pravatar.cc/100?u=${user.id}`}
+                  alt={user.nombre}
+                />
+
+                <div onClick={() => navigate(`/profile/${user.id}`)}
+                  style={{ cursor: "pointer", flex: 1 }}>
+                  <strong>
+                    {user.nombre} {user.apellido}
+                  </strong>
+                  <p>Spotly user</p>
+                </div>
+
+                <FollowButton
+                  userId={user.id}
+                  isFollowing={followingIds.includes(user.id)}
+                  isLoading={loadingId === user.id}
+                  onToggle={handleFollowToggle}
+                />
               </div>
-
-              <button>Follow</button>
-            </div>
-          ))}
+            );
+          })}
 
           {users.length === 0 && (
             <p style={{ fontSize: "0.85rem", color: "#aaa", padding: "0.5rem 0" }}>
@@ -708,7 +780,6 @@ export const Dashboard = () => {
             </p>
           )}
         </div>
-
         <div className="right-card">
           <div className="card-title">
             <h3>Trending spots</h3>

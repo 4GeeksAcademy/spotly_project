@@ -1,29 +1,19 @@
-import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import ScrollToTop from "../components/ScrollToTop";
 import { Navbar } from "../components/Navbar";
 import { Footer } from "../components/Footer";
-import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const Layout = () => {
   const location = useLocation();
-  const { store } = useGlobalReducer();
 
-  const hideNavbarRoutes = ["/dashboard", "/explore", "/profile", "/notifications"];
-  const darkModeRoutes = ["/dashboard", "/explore", "/profile", "/notifications"];
-
-  useEffect(() => {
-    const shouldUseDarkMode =
-      store.theme === "dark" && darkModeRoutes.includes(location.pathname);
-
-    document.body.classList.toggle("dark-mode", shouldUseDarkMode);
-  }, [store.theme, location.pathname]);
+  const hideNavbar = ["/dashboard", "/explore", "/profile", "/notifications"];
+  const showNavbar = !hideNavbar.some((r) => location.pathname.startsWith(r));
 
   return (
     <ScrollToTop>
-      {!hideNavbarRoutes.includes(location.pathname) && <Navbar />}
+      {showNavbar && <Navbar />}
       <Outlet />
-      {!hideNavbarRoutes.includes(location.pathname) && <Footer />}
+      {showNavbar && <Footer />}
     </ScrollToTop>
   );
 };

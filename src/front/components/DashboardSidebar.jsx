@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MapPin, Bell, User, Home, Compass, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import spotlyLogo from "../assets/img/spotlylogo-bbg.png";
 
 export const DashboardSidebar = () => {
   const navigate = useNavigate();
@@ -9,6 +10,15 @@ export const DashboardSidebar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", store.theme === "dark");
+  }, [store.theme]);
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", store.theme === "dark");
+    return () => document.body.classList.remove("dark-mode"); // limpia al desmontar
+  }, [store.theme]);
 
   useEffect(() => {
     const getUnreadNotifications = async () => {
@@ -38,7 +48,7 @@ export const DashboardSidebar = () => {
       <div className="dashboard-logo">
         <img
           className="dashboard-logo-img"
-          src="./src/front/assets/img/spotlylogo-bbg.png"
+          src={spotlyLogo}
           alt="Spotly logo"
         />
       </div>
