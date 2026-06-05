@@ -96,7 +96,8 @@ def login():
             "nombre": user.nombre,
             "apellido": user.apellido,
             "email": user.email,
-            "tipo_usuario": user.tipo_usuario
+            "tipo_usuario": user.tipo_usuario,
+            "profile_image": user.profile_image,
         }
     }), 200
 
@@ -109,6 +110,27 @@ def profile():
 
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    return jsonify(user.serialize()), 200
+
+
+@api.route("/profile/avatar", methods=["PUT"])
+@jwt_required()
+def update_profile_avatar():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    body = request.get_json() or {}
+    profile_image = body.get("profile_image")
+
+    if not profile_image:
+        return jsonify({"msg": "La imagen de perfil es obligatoria"}), 400
+
+    user.profile_image = profile_image
+    db.session.commit()
 
     return jsonify(user.serialize()), 200
 
@@ -305,6 +327,7 @@ def get_users():
             "id": user.id,
             "nombre": user.nombre,
             "apellido": user.apellido,
+            "profile_image": user.profile_image,
         }
         for user in users
     ]), 200
@@ -596,6 +619,7 @@ def _serialize_spot(spot, current_user_id=None):
             "nombre": spot.user.nombre,
             "apellido": spot.user.apellido,
             "tipo_usuario": spot.user.tipo_usuario,
+            "profile_image": spot.user.profile_image,
         } if spot.user else None,
         "images": [img.image_url for img in spot.images],
     }

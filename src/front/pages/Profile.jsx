@@ -3,7 +3,7 @@ import {
   Grid3X3,
   Bookmark,
   BadgeCheck,
-  Ellipsis
+  Ellipsis,
 } from "lucide-react";
 
 import { DashboardSidebar } from "../components/DashboardSidebar";
@@ -12,13 +12,12 @@ import "../components/userProfile.css";
 import { useEffect, useState, useMemo } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { useNavigate, useParams } from "react-router-dom";
-
+import toast from "react-hot-toast";
 
 export const Profile = () => {
-  const { store, dispatch } = useGlobalReducer(); // ← dispatch añadido
+  const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
   const { userId } = useParams();
-
 
   const [editing, setEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
@@ -28,114 +27,13 @@ export const Profile = () => {
   const [targetUser, setTargetUser] = useState(null);
   const [followingIds, setFollowingIds] = useState([]);
   const [loadingId, setLoadingId] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [userData, setUserData] = useState({
     username: "",
     bio: "✨ Exploring new places & capturing moments",
-    location: "📍 Digital nomad"
+    location: "📍 Digital nomad",
   });
-
-  // ── fetches ──────────────────────────────────────────────
-
-  const fetchTargetUser = async (ownProfile, tUserId) => {
-    if (isOwnProfile) {
-      setTargetUser(store.user);
-      setUserData((prev) => ({
-        ...prev,
-        username: `${store.user?.nombre || ""} ${store.user?.apellido || ""}`.trim(),
-      }));
-      return;
-    }
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}api/users/${tUserId}`,
-        { headers: { Authorization: `Bearer ${store.token}` } }
-      );
-      const data = await res.json();
-      if (res.ok) {
-        setTargetUser(data);
-        setUserData((prev) => ({
-          ...prev,
-          username: `${data.nombre || ""} ${data.apellido || ""}`.trim(),
-        }));
-      }
-    } catch (err) {
-      console.error("Error loading user:", err);
-    }
-  };
-
-  const fetchSpots = async () => {
-    try {
-      const res = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/spots",
-        { headers: { Authorization: `Bearer ${store.token}` } }
-      );
-      const data = await res.json();
-      if (res.ok) setSpots(data.spots || data);
-    } catch (err) {
-      console.error("Error loading spots:", err);
-    }
-  };
-
-  const fetchFollowers = async (ownProfile, tUserId) => {
-    // Si es perfil ajeno, pedimos los followers de ese usuario
-    const endpoint = isOwnProfile
-      ? "api/users/me/followers"
-      : `api/users/${tUserId}/followers`;
-    try {
-      const res = await fetch(
-        import.meta.env.VITE_BACKEND_URL + endpoint,
-        { headers: { Authorization: `Bearer ${store.token}` } }
-      );
-      const data = await res.json();
-      if (res.ok) setFollowersCount(data.count);
-    } catch (err) {
-      console.error("Error cargando followers:", err);
-    }
-  };
-
-  const fetchFollowing = async () => {
-    try {
-      const res = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
-        { headers: { Authorization: `Bearer ${store.token}` } }
-      );
-      const data = await res.json();
-      if (res.ok) setFollowingIds(data.map((u) => u.id));
-    } catch (err) {
-      console.error("Error cargando following:", err);
-    }
-  };
-
-  const handleFollowToggle = async (targetId) => {
-    setLoadingId(targetId);
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}api/users/${targetId}/follow`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${store.token}`,
-          },
-        }
-      );
-      const data = await res.json();
-      if (res.ok) {
-        if (data.is_following) {
-          setFollowingIds((prev) => [...prev, targetId]);
-          setFollowersCount((prev) => prev + 1);
-        } else {
-          setFollowingIds((prev) => prev.filter((id) => id !== targetId));
-          setFollowersCount((prev) => Math.max(prev - 1, 0));
-        }
-      }
-    } catch (err) {
-      console.error("Error toggling follow:", err);
-    } finally {
-      setLoadingId(null);
-    }
-  };
 
   const isOwnProfile = useMemo(
     () => !userId || Number(userId) === Number(store.user?.id),
@@ -147,24 +45,245 @@ export const Profile = () => {
     [userId, store.user?.id]
   );
 
-  useEffect(() => {
-    fetchTargetUser(isOwnProfile, targetUserId);
-    fetchSpots();
-    fetchFollowers(isOwnProfile, targetUserId);
-    if (!isOwnProfile) fetchFollowing();
-  }, [userId, store.user?.id]);
+  const getAvatarUrl = () => {
+    return (
+      targetUser?.profile_image ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        userData.username || "Spotly User"
+      )}&background=ef3340&color=fff`
+    );
+  };
 
-  // ── derived data ─────────────────────────────────────────
+  const fetchTargetUser = async () => {
+    if (!targetUserId) return;
+
+    if (isOwnProfile) {
+      setTargetUser(store.user);
+      setUserData((prev) => ({
+        ...prev,
+        username: `${store.user?.nombre || ""} ${
+          store.user?.apellido || ""
+        }`.trim(),
+      }));
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}api/users/${targetUserId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setTargetUser(data);
+        setUserData((prev) => ({
+          ...prev,
+          username: `${data.nombre || ""} ${data.apellido || ""}`.trim(),
+        }));
+      } else {
+        toast.error(data.msg || "Error loading user");
+      }
+    } catch (err) {
+      console.error("Error loading user:", err);
+      toast.error("Error loading user");
+    }
+  };
+
+  const fetchSpots = async () => {
+    try {
+      const res = await fetch(import.meta.env.VITE_BACKEND_URL + "api/spots", {
+        headers: {
+          Authorization: `Bearer ${store.token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSpots(data.spots || data);
+      }
+    } catch (err) {
+      console.error("Error loading spots:", err);
+    }
+  };
+
+  const fetchFollowers = async () => {
+    if (!targetUserId) return;
+
+    const endpoint = isOwnProfile
+      ? "api/users/me/followers"
+      : `api/users/${targetUserId}/followers`;
+
+    try {
+      const res = await fetch(import.meta.env.VITE_BACKEND_URL + endpoint, {
+        headers: {
+          Authorization: `Bearer ${store.token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setFollowersCount(data.count || data.length || 0);
+      }
+    } catch (err) {
+      console.error("Error cargando followers:", err);
+    }
+  };
+
+  const fetchFollowing = async () => {
+    try {
+      const res = await fetch(
+        import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
+        {
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setFollowingIds(data.map((u) => u.id));
+      }
+    } catch (err) {
+      console.error("Error cargando following:", err);
+    }
+  };
+
+  const handleFollowToggle = async (targetId) => {
+    setLoadingId(targetId);
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}api/users/${targetId}/follow`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        if (data.is_following) {
+          setFollowingIds((prev) => [...prev, targetId]);
+          setFollowersCount((prev) => prev + 1);
+          toast.success("Following user");
+        } else {
+          setFollowingIds((prev) => prev.filter((id) => id !== targetId));
+          setFollowersCount((prev) => Math.max(prev - 1, 0));
+          toast.success("Unfollowed user");
+        }
+      } else {
+        toast.error(data.msg || "Error updating follow");
+      }
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+      toast.error("Error updating follow");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const uploadProfileImage = async (file) => {
+    if (!file) return;
+
+    try {
+      setUploadingPhoto(true);
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const uploadResponse = await fetch(
+        import.meta.env.VITE_BACKEND_URL + "api/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const imageUrl = await uploadResponse.json();
+
+      if (!uploadResponse.ok) {
+        toast.error("Error uploading image");
+        return;
+      }
+
+      const saveResponse = await fetch(
+        import.meta.env.VITE_BACKEND_URL + "api/profile/avatar",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${store.token}`,
+          },
+          body: JSON.stringify({
+            profile_image: imageUrl,
+          }),
+        }
+      );
+
+      const updatedUser = await saveResponse.json();
+
+      if (!saveResponse.ok) {
+        toast.error(updatedUser.msg || "Error updating profile photo");
+        return;
+      }
+
+      dispatch({
+        type: "set_user",
+        payload: updatedUser,
+      });
+
+      setTargetUser(updatedUser);
+
+      toast.success("Profile photo updated");
+    } catch (error) {
+      console.error(error);
+      toast.error("Error updating profile photo");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTargetUser();
+    fetchSpots();
+    fetchFollowers();
+
+    if (!isOwnProfile) {
+      fetchFollowing();
+    }
+  }, [userId, store.user?.id, store.user?.profile_image]);
 
   const myPosts = spots.filter(
     (spot) => Number(spot.user?.id) === Number(targetUserId)
   );
-  const savedPosts = spots.filter((spot) => spot.saved);
-  const visiblePosts = activeTab === "saved" ? savedPosts : myPosts;
-  const totalLikes = myPosts.reduce((t, s) => t + (s.likes || 0), 0);
-  const totalSaved = myPosts.reduce((t, s) => t + (s.favorites || 0), 0);
 
-  // ── render ────────────────────────────────────────────────
+  const savedPosts = spots.filter((spot) => spot.saved || spot.is_favorite);
+
+  const visiblePosts = activeTab === "saved" ? savedPosts : myPosts;
+
+  const totalLikes = myPosts.reduce(
+    (total, spot) => total + (spot.likes_count || spot.likes || 0),
+    0
+  );
+
+  const totalSaved = myPosts.reduce(
+    (total, spot) => total + (spot.favorites_count || spot.favorites || 0),
+    0
+  );
 
   return (
     <div className="spotly-dashboard">
@@ -174,21 +293,19 @@ export const Profile = () => {
         <div className="profile-page">
           <section className="profile-header">
             <div className="profile-avatar">
-              <img
-                src={`https://i.pravatar.cc/300?u=${targetUserId}`}
-                alt="profile"
-              />
+              <img src={getAvatarUrl()} alt="profile" />
 
               {isOwnProfile && (
                 <label className="change-photo-btn">
-                  Change Photo
+                  {uploadingPhoto ? "Uploading..." : "Change Photo"}
                   <input
                     type="file"
                     accept="image/*"
                     hidden
+                    disabled={uploadingPhoto}
                     onChange={(e) => {
                       const file = e.target.files[0];
-                      if (file) URL.createObjectURL(file); // preview local si lo necesitas
+                      uploadProfileImage(file);
                     }}
                   />
                 </label>
@@ -197,7 +314,6 @@ export const Profile = () => {
 
             <div className="profile-info">
               <div className="profile-top">
-                {/* Nombre: editable solo en perfil propio */}
                 {isOwnProfile && editing ? (
                   <input
                     className="edit-input"
@@ -213,7 +329,6 @@ export const Profile = () => {
                   </h2>
                 )}
 
-                {/* Controles solo en perfil propio */}
                 {isOwnProfile && (
                   <>
                     <button
@@ -235,12 +350,15 @@ export const Profile = () => {
                       {showSettings && (
                         <div className="settings-menu">
                           <label className="settings-option">
-                            Change Photo
+                            {uploadingPhoto ? "Uploading..." : "Change Photo"}
                             <input
                               type="file"
                               accept="image/*"
                               hidden
+                              disabled={uploadingPhoto}
                               onChange={(e) => {
+                                const file = e.target.files[0];
+                                uploadProfileImage(file);
                                 setShowSettings(false);
                               }}
                             />
@@ -261,7 +379,6 @@ export const Profile = () => {
                   </>
                 )}
 
-                {/* Botón Follow en perfil ajeno */}
                 {!isOwnProfile && (
                   <FollowButton
                     userId={Number(targetUserId)}
@@ -273,10 +390,18 @@ export const Profile = () => {
               </div>
 
               <div className="profile-stats">
-                <span><strong>{myPosts.length}</strong> posts</span>
-                <span><strong>{followersCount}</strong> followers</span>
-                <span><strong>{totalLikes}</strong> likes</span>
-                <span><strong>{totalSaved}</strong> saves</span>
+                <span>
+                  <strong>{myPosts.length}</strong> posts
+                </span>
+                <span>
+                  <strong>{followersCount}</strong> followers
+                </span>
+                <span>
+                  <strong>{totalLikes}</strong> likes
+                </span>
+                <span>
+                  <strong>{totalSaved}</strong> saves
+                </span>
               </div>
 
               <div className="profile-bio">
@@ -316,7 +441,6 @@ export const Profile = () => {
               <Grid3X3 size={18} /> POSTS
             </button>
 
-            {/* Tab "Saved" solo visible en perfil propio */}
             {isOwnProfile && (
               <button
                 className={activeTab === "saved" ? "active" : ""}
@@ -331,15 +455,30 @@ export const Profile = () => {
             {visiblePosts.length > 0 ? (
               visiblePosts.map((spot) => {
                 const image =
+                  spot.images?.[0]?.image_url ||
                   spot.images?.[0] ||
                   "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900";
+
                 return (
-                  <div className="profile-post" key={spot.id}>
-                    <img src={image} alt={spot.titulo || "post"} />
-                    <button className="post-menu">
-                      <Ellipsis size={20} />
-                    </button>
-                  </div>
+                 <div className="profile-post" key={spot.id}>
+  <img src={image} alt={spot.titulo || "post"} />
+
+  <div className="profile-post-user">
+    <img
+      src={
+        targetUser?.profile_image ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          userData.username || "Spotly User"
+        )}&background=ef3340&color=fff`
+      }
+      alt={userData.username || "User"}
+    />
+  </div>
+
+  <button className="post-menu">
+    <Ellipsis size={20} />
+  </button>
+</div>
                 );
               })
             ) : (

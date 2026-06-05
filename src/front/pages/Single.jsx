@@ -64,7 +64,12 @@ export const Single = () => {
       <article className="single-spot-card">
         <div className="post-header">
           <img
-            src={`https://i.pravatar.cc/100?u=${spot.user?.id}`}
+            src={
+  user?.profile_image ||
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    `${user?.nombre || ""} ${user?.apellido || ""}`.trim() || "Spotly User"
+  )}&background=ef3340&color=fff`
+}
             alt={spot.user?.nombre}
           />
 

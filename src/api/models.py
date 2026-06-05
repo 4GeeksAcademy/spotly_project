@@ -20,6 +20,7 @@ class User(db.Model):
     telefono = db.Column(db.String(20))
     pais = db.Column(db.String(80))
     genero = db.Column(db.String(20))
+    profile_image = db.Column(db.String(500), nullable=True)
 
     tipo_usuario = db.Column(
         Enum("user", "admin", name="tipo_usuario_enum"),
@@ -62,15 +63,17 @@ class User(db.Model):
             "tipo_usuario": self.tipo_usuario,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "profile_image": self.profile_image,
         }
 
     def serialize_public(self):
         return {
-            "id": self.id,
-            "nombre": self.nombre,
-            "apellido": self.apellido,
-            "tipo_usuario": self.tipo_usuario,
-        }
+        "id": self.id,
+        "nombre": self.nombre,
+        "apellido": self.apellido,
+        "profile_image": self.profile_image,
+        "tipo_usuario": self.tipo_usuario,
+    }
 
 
 # =========================================================
