@@ -425,6 +425,8 @@ class Post(db.Model):
  # =========================================================
 # NOTIFICATIONS
 # =========================================================
+
+
 class Notification(db.Model):
     __tablename__ = "notifications"
 
@@ -482,4 +484,39 @@ class Notification(db.Model):
                 "id": self.spot.id,
                 "titulo": self.spot.titulo
             } if self.spot else None,
+        }
+    # =========================================================
+# FOLLOWS
+# =========================================================
+
+
+class Follow(db.Model):
+    __tablename__ = "follows"
+
+    __table_args__ = (
+        db.UniqueConstraint("follower_id", "followed_id",
+                            name="unique_follow"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    follower_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False)
+    followed_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    created_at = db.Column(
+        db.TIMESTAMP, server_default=func.current_timestamp())
+
+    follower = db.relationship("User", foreign_keys=[
+                               follower_id], backref="following")
+    followed = db.relationship("User", foreign_keys=[
+                               followed_id], backref="followers")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "follower_id": self.follower_id,
+            "followed_id": self.followed_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
