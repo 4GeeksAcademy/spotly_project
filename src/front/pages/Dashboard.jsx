@@ -16,6 +16,7 @@ import {
   Globe,
 } from "lucide-react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
@@ -290,7 +291,7 @@ export const Dashboard = () => {
       setCopied(true);
     } catch (error) {
       console.error("Error copying link:", error);
-      alert("Could not copy link");
+      toast.error("Could not copy link");
     }
   };
 
@@ -425,10 +426,10 @@ export const Dashboard = () => {
         setSpots((prev) => prev.filter((s) => s.id !== spotId));
       } else {
         const data = await response.json();
-        alert(data.msg || "Error al eliminar");
+        toast.error(data.msg || "Error deleting spot");
       }
     } catch (err) {
-      alert("Error de red al eliminar el spot");
+      toast.error("Network error deleting spot");
     }
   };
 
@@ -463,7 +464,7 @@ export const Dashboard = () => {
 
   const handleFollowToggle = async (targetUserId) => {
     if (!store.token) {
-      alert("Debes iniciar sesión para seguir usuarios.");
+      toast.error("You must be logged in to follow users");
       return;
     }
 

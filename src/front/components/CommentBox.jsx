@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../styles/commentBox.css";
+import toast from "react-hot-toast";
 
 export const CommentBox = ({ spotId, token }) => {
     const [comments, setComments] = useState([]);
@@ -49,7 +50,7 @@ export const CommentBox = ({ spotId, token }) => {
         console.log("RESPONSE:", data);
 
         if (!res.ok) {
-            alert(data.msg || "Error creando comentario");
+            toast.error(data.msg || "Error creating comment");
             return null;
         }
 

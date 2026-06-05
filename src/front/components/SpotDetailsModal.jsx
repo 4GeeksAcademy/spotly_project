@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import "leaflet/dist/leaflet.css";
+import toast from "react-hot-toast";
 
 import { CommentBox } from "./CommentBox";
 
@@ -116,7 +117,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
         });
       } else {
         await navigator.clipboard.writeText(shareText);
-        alert("Spot copied to clipboard");
+        toast.success("Spot copied to clipboard");
       }
     } catch (err) {
       console.error("Error sharing spot", err);
