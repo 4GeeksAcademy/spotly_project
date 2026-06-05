@@ -1976,3 +1976,32 @@ body.dark-mode .explore-map-card {
 .profile-post {
   position: relative;
 }
+.comment__avatar,
+.reply__avatar {
+  overflow: hidden;
+}
+
+.comment__avatar img,
+.reply__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.notification-avatar {
+  overflow: hidden;
+}
+
+.notification-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.author-avatar {
+  overflow: hidden;
+}
+
+.author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

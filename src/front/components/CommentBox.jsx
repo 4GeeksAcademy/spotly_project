@@ -124,6 +124,15 @@ export const CommentBox = ({ spotId, token }) => {
         return "Usuario";
     };
 
+    const getAvatar = (comment) => {
+  return (
+    comment.user?.profile_image ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      getAuthorName(comment)
+    )}&background=ef3340&color=fff`
+  );
+};
+
     const renderActions = (comment) => {
         if (!comment.can_edit) return null;
 
@@ -161,8 +170,8 @@ export const CommentBox = ({ spotId, token }) => {
                     comments.map(comment => (
                         <article key={comment.id} className="comment">
                             <div className="comment__avatar">
-                                {getAuthorName(comment).charAt(0).toUpperCase()}
-                            </div>
+  <img src={getAvatar(comment)} alt={getAuthorName(comment)} />
+</div>
 
                             <div className="comment__content">
                                 <div className="comment__bubble">
@@ -214,8 +223,8 @@ export const CommentBox = ({ spotId, token }) => {
                                         {comment.replies.map(reply => (
                                             <article key={reply.id} className="reply">
                                                 <div className="reply__avatar">
-                                                    {getAuthorName(reply).charAt(0).toUpperCase()}
-                                                </div>
+  <img src={getAvatar(reply)} alt={getAuthorName(reply)} />
+</div>
 
                                                 <div className="reply__bubble">
                                                     <div className="comment__top">
