@@ -264,54 +264,31 @@
 }
 /* ===== DARK MODE PROFILE ===== */
 
-.dark .profile-page {
-  background: #111827;
+.dark-mode .profile-page {
+  background: var(--spotly-dark);
   color: white;
 }
 
-.dark .profile-top h2 {
+.dark-mode .profile-top h2 {
   color: white;
 }
 
-.dark .profile-stats span {
+.dark-mode .profile-stats span {
   color: #d1d5db;
 }
 
-.dark .profile-bio p {
+.dark-mode .profile-bio p {
   color: #d1d5db;
 }
 
-.dark .profile-tabs {
-  border-top: 1px solid #374151;
+.dark-mode .profile-tabs {
+  border-top: 1px solid #2a2f38;
 }
 
-.dark .profile-tabs button {
+.dark-mode .profile-tabs .active {
+  color: white;
+}
+
+.dark-mode .profile-tabs button {
   color: #9ca3af;
-}
-
-.dark .profile-tabs .active {
-  color: white;
-}
-
-.dark .settings-menu {
-  background: #1f2937;
-  border: 1px solid #374151;
-}
-
-.dark .settings-option {
-  color: white;
-}
-
-.dark .settings-option:hover {
-  background: #374151;
-}
-
-.dark .post-menu {
-  background: #1f2937;
-  color: white;
-}
-
-.dark .spot-post {
-  background: #1f2937;
-  color: white;
 }
