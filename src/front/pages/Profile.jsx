@@ -178,43 +178,35 @@ export const Profile = () => {
                 src={`https://i.pravatar.cc/300?u=${targetUserId}`}
                 alt="profile"
               />
-
-              {isOwnProfile && (
-                <label className="change-photo-btn">
-                  Change Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) URL.createObjectURL(file); // preview local si lo necesitas
-                    }}
-                  />
-                </label>
-              )}
             </div>
 
             <div className="profile-info">
+
               <div className="profile-top">
-                {/* Nombre: editable solo en perfil propio */}
+
                 {isOwnProfile && editing ? (
                   <input
                     className="edit-input"
                     value={userData.username}
                     onChange={(e) =>
-                      setUserData({ ...userData, username: e.target.value })
+                      setUserData({
+                        ...userData,
+                        username: e.target.value
+                      })
                     }
                   />
                 ) : (
                   <h2>
                     {userData.username || "Spotly User"}
-                    <BadgeCheck size={22} fill="#ff4d67" color="#ff4d67" />
+                    <BadgeCheck
+                      size={22}
+                      fill="#ff4d67"
+                      color="#ff4d67"
+                    />
                   </h2>
                 )}
 
-                {/* Controles solo en perfil propio */}
-                {isOwnProfile && (
+                {isOwnProfile ? (
                   <>
                     <button
                       className="edit-btn"
@@ -234,13 +226,21 @@ export const Profile = () => {
 
                       {showSettings && (
                         <div className="settings-menu">
+
                           <label className="settings-option">
                             Change Photo
+
                             <input
                               type="file"
                               accept="image/*"
                               hidden
                               onChange={(e) => {
+                                const file = e.target.files[0];
+
+                                if (file) {
+                                  setProfileImage(URL.createObjectURL(file));
+                                }
+
                                 setShowSettings(false);
                               }}
                             />
@@ -255,14 +255,12 @@ export const Profile = () => {
                           >
                             Log Out
                           </button>
+
                         </div>
                       )}
                     </div>
                   </>
-                )}
-
-                {/* Botón Follow en perfil ajeno */}
-                {!isOwnProfile && (
+                ) : (
                   <FollowButton
                     userId={Number(targetUserId)}
                     isFollowing={followingIds.includes(Number(targetUserId))}
@@ -270,6 +268,7 @@ export const Profile = () => {
                     onToggle={handleFollowToggle}
                   />
                 )}
+
               </div>
 
               <div className="profile-stats">
@@ -286,14 +285,21 @@ export const Profile = () => {
                       className="edit-input"
                       value={userData.location}
                       onChange={(e) =>
-                        setUserData({ ...userData, location: e.target.value })
+                        setUserData({
+                          ...userData,
+                          location: e.target.value
+                        })
                       }
                     />
+
                     <textarea
                       className="edit-textarea"
                       value={userData.bio}
                       onChange={(e) =>
-                        setUserData({ ...userData, bio: e.target.value })
+                        setUserData({
+                          ...userData,
+                          bio: e.target.value
+                        })
                       }
                     />
                   </>
@@ -305,8 +311,10 @@ export const Profile = () => {
                   </>
                 )}
               </div>
+
             </div>
           </section>
+
 
           <section className="profile-tabs">
             <button
@@ -352,8 +360,8 @@ export const Profile = () => {
               </div>
             )}
           </section>
-        </div>
-      </main>
-    </div>
+        </div >
+      </main >
+    </div >
   );
 };
