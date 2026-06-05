@@ -667,3 +667,36 @@ def get_my_following():
         }
         for f in follows
     ]), 200
+
+
+@api.route("/users/me/followers", methods=["GET"])
+@jwt_required()
+def get_my_followers():
+    current_user_id = int(get_jwt_identity())
+
+    count = Follow.query.filter_by(followed_id=current_user_id).count()
+
+    return jsonify({"count": count}), 200
+
+
+@api.route("/users/<int:user_id>/followers", methods=["GET"])
+@jwt_required()
+def get_user_followers(user_id):
+    count = Follow.query.filter_by(followed_id=user_id).count()
+    return jsonify({"count": count}), 200
+
+
+@api.route("/users/<int:user_id>", methods=["GET"])
+@jwt_required()
+def get_user_by_id(user_id):
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    return jsonify({
+        "id": user.id,
+        "nombre": user.nombre,
+        "apellido": user.apellido,
+        "tipo_usuario": user.tipo_usuario,
+    }), 200

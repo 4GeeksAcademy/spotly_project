@@ -21,6 +21,7 @@ import { useState, useEffect } from "react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { SpotModal } from "./SpotModal";
 import { CommentBox } from "../components/CommentBox";
+import { FollowButton } from "../components/FollowButton";
 
 const ImageCarousel = ({ images, titulo }) => {
   const [current, setCurrent] = useState(0);
@@ -113,36 +114,7 @@ const ImageCarousel = ({ images, titulo }) => {
   );
 };
 
-const FollowButton = ({ userId, isFollowing, isLoading, onToggle }) => {
-  const [hovered, setHovered] = useState(false);
 
-  return (
-    <button
-      onClick={() => onToggle(userId)}
-      disabled={isLoading}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        backgroundColor: isFollowing
-          ? hovered ? "#fee2e2" : "#f3f4f6"
-          : "#ef3340",
-        color: isFollowing
-          ? hovered ? "#ef3340" : "#1f2937"
-          : "#ffffff",
-        border: isFollowing ? "1px solid #d1d5db" : "none",
-        cursor: isLoading ? "not-allowed" : "pointer",
-        padding: "4px 12px",
-        borderRadius: "20px",
-        fontWeight: "600",
-        fontSize: "0.85rem",
-        transition: "all 0.2s",
-        minWidth: "80px",
-      }}
-    >
-      {isLoading ? "..." : isFollowing ? (hovered ? "Unfollow" : "Following") : "Follow"}
-    </button>
-  );
-};
 
 export const Dashboard = () => {
   const { store } = useGlobalReducer();
@@ -784,7 +756,8 @@ export const Dashboard = () => {
                   alt={user.nombre}
                 />
 
-                <div>
+                <div onClick={() => navigate(`/profile/${user.id}`)}
+                  style={{ cursor: "pointer", flex: 1 }}>
                   <strong>
                     {user.nombre} {user.apellido}
                   </strong>

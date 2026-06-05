@@ -1,5 +1,3 @@
-// Import necessary components and functions from react-router-dom.
-
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -21,10 +19,16 @@ import { Notifications } from "./pages/Notifications";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
+    <>
+      {/* ── Rutas CON el Layout del home (navbar, etc.) ── */}
+      <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
+        <Route index element={<Home />} />
+        <Route path="login" element={<Login mode="login" />} />
+        <Route path="register" element={<Register mode="register" />} />
+        <Route path="demo" element={<Demo />} />
+      </Route>
 
-      <Route path="/" element={<Home />} />
-
+      {/* ── Rutas SIN Layout (dashboard, perfil, etc.) ── */}
       <Route
         path="/dashboard"
         element={
@@ -55,6 +59,15 @@ export const router = createBrowserRouter(
       />
 
       <Route
+        path="/profile/:userId"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/notifications"
         element={
           <ProtectedRoute>
@@ -63,11 +76,9 @@ export const router = createBrowserRouter(
         }
       />
 
-      <Route path="login" element={<Login mode="login" />} />
-      <Route path="register" element={<Register mode="register" />} />
       <Route path="/single/:theId" element={<Single />} />
-      <Route path="/demo" element={<Demo />} />
 
-    </Route>
+      <Route path="*" element={<h1>Not found!</h1>} />
+    </>
   )
 );
