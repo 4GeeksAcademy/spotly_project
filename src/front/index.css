@@ -1586,25 +1586,7 @@ body.dark-mode .explore-map-card {
   background: #18181b;
   border-color: #27272a;
 }
-.dashboard-layout {
-  display: flex;
-  width: 100%;
-  min-height: 100vh;
-}
 
-.dashboard-sidebar {
-  width: 260px;
-  min-width: 260px;
-  height: 100vh;
-  position: sticky;
-  top: 0;
-}
-
-.notifications-page {
-  flex: 1;
-  min-height: 100vh;
-  overflow-y: auto;
-}
 .topbar-notifications {
   position: relative;
 }
