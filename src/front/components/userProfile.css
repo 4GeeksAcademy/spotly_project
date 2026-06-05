@@ -292,3 +292,19 @@
 .dark-mode .profile-tabs button {
   color: #9ca3af;
 }
+/* ===== DARK MODE SETTINGS MENU ===== */
+
+.dark-mode .settings-menu {
+  background: #111827;
+  border: 1px solid #2a2f38;
+  backdrop-filter: blur(10px);
+}
+
+
+.dark-mode .settings-option {
+  color: #e5e7eb;
+}
+
+.dark-mode .settings-option:hover {
+  background: #374151;
+}
