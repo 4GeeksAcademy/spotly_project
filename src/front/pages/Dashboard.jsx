@@ -216,24 +216,29 @@ export const Dashboard = () => {
     }
   };
 
-  const fetchFollowing = async () => {
-    try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
-        {
-          headers: { Authorization: `Bearer ${store.token}` },
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setFollowingIds(data.map((user) => user.id));
+const fetchFollowing = async () => {
+  try {
+    const response = await fetch(
+      import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
+      {
+        headers: {
+          Authorization: `Bearer ${store.token}`,
+        },
       }
-    } catch (err) {
-      console.error("Error cargando following:", err);
-    }
-  };
+    );
+
+    const data = await response.json();
+
+    const following = Array.isArray(data)
+      ? data
+      : data.following || [];
+
+    setFollowingIds(following.map((user) => user.id));
+
+  } catch (err) {
+    console.error("Error cargando following:", err);
+  }
+};
 
   const fetchSpots = async () => {
     try {

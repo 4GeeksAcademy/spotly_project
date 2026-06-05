@@ -683,14 +683,16 @@ def get_my_following():
 
     follows = Follow.query.filter_by(follower_id=current_user_id).all()
 
-    return jsonify([
-        {
-            "id": f.followed.id,
-            "nombre": f.followed.nombre,
-            "apellido": f.followed.apellido,
-        }
+    following = [
+        f.followed.serialize_public()
         for f in follows
-    ]), 200
+        if f.followed
+    ]
+
+    return jsonify({
+        "count": len(following),
+        "following": following
+    }), 200
 
 
 @api.route("/users/me/followers", methods=["GET"])
@@ -698,17 +700,50 @@ def get_my_following():
 def get_my_followers():
     current_user_id = int(get_jwt_identity())
 
-    count = Follow.query.filter_by(followed_id=current_user_id).count()
+    follows = Follow.query.filter_by(followed_id=current_user_id).all()
 
-    return jsonify({"count": count}), 200
+    followers = [
+        f.follower.serialize_public()
+        for f in follows
+        if f.follower
+    ]
 
+    return jsonify({
+        "count": len(followers),
+        "followers": followers
+    }), 200
+
+@api.route("/users/<int:user_id>/following", methods=["GET"])
+@jwt_required()
+def get_user_following(user_id):
+    follows = Follow.query.filter_by(follower_id=user_id).all()
+
+    following = [
+        f.followed.serialize_public()
+        for f in follows
+        if f.followed
+    ]
+
+    return jsonify({
+        "count": len(following),
+        "following": following
+    }), 200
 
 @api.route("/users/<int:user_id>/followers", methods=["GET"])
 @jwt_required()
 def get_user_followers(user_id):
-    count = Follow.query.filter_by(followed_id=user_id).count()
-    return jsonify({"count": count}), 200
+    follows = Follow.query.filter_by(followed_id=user_id).all()
 
+    followers = [
+        f.follower.serialize_public()
+        for f in follows
+        if f.follower
+    ]
+
+    return jsonify({
+        "count": len(followers),
+        "followers": followers
+    }), 200
 
 @api.route("/users/<int:user_id>", methods=["GET"])
 @jwt_required()

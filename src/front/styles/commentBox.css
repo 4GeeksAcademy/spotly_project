@@ -434,3 +434,72 @@ html.dark-mode .edit-box__actions button:first-child {
     background: #253044 !important;
     color: #d4d4d8 !important;
 }
+.confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.confirm-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .confirm-modal {
+  background: #18181b;
+  color: #f9fafb;
+  border: 1px solid #27272a;
+}
+
+.confirm-modal h3 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.confirm-modal p {
+  margin: 0;
+  color: #71717a;
+  line-height: 1.5;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.confirm-modal-actions button {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirm-modal-actions button:first-child {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.confirm-modal-actions button:last-child {
+  background: #ef3340;
+  color: white;
+}
+
+.dark-mode .confirm-modal-actions button:first-child {
+  background: #27272a;
+  color: #f9fafb;
+}

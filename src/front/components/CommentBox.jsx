@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../styles/commentBox.css";
+import { ConfirmModal } from "./confirmModal";
 import toast from "react-hot-toast";
 
 export const CommentBox = ({ spotId, token }) => {
@@ -8,6 +9,8 @@ export const CommentBox = ({ spotId, token }) => {
     const [replyingTo, setReplyingTo] = useState(null);
     const [editingComment, setEditingComment] = useState(null);
     const [editText, setEditText] = useState("");
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [commentToDelete, setCommentToDelete] = useState(null);
 
     const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -35,35 +38,35 @@ export const CommentBox = ({ spotId, token }) => {
             ? `${API_URL}api/comments/${replyingTo.id}/reply`
             : `${API_URL}api/spots/${spotId}/comments`;
 
-     fetch(endpoint, {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({ contenido: newComment })
-})
-    .then(async (res) => {
-        const data = await res.json();
+        fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ contenido: newComment })
+        })
+            .then(async (res) => {
+                const data = await res.json();
 
-        console.log("STATUS:", res.status);
-        console.log("RESPONSE:", data);
+                console.log("STATUS:", res.status);
+                console.log("RESPONSE:", data);
 
-        if (!res.ok) {
-            toast.error(data.msg || "Error creating comment");
-            return null;
-        }
+                if (!res.ok) {
+                    toast.error(data.msg || "Error creating comment");
+                    return null;
+                }
 
-        return data;
-    })
-    .then(data => {
-        if (data?.id) {
-            setNewComment("");
-            setReplyingTo(null);
-            getComments();
-        }
-    })
-    .catch(err => console.error("Error publicando comentario:", err));
+                return data;
+            })
+            .then(data => {
+                if (data?.id) {
+                    setNewComment("");
+                    setReplyingTo(null);
+                    getComments();
+                }
+            })
+            .catch(err => console.error("Error publicando comentario:", err));
     };
 
     const startEdit = (comment) => {
@@ -99,19 +102,31 @@ export const CommentBox = ({ spotId, token }) => {
             .catch(err => console.error("Error editando comentario:", err));
     };
 
-    const deleteComment = (commentId) => {
-        const confirmDelete = window.confirm("You are deleting this comment, are you sure?");
-        if (!confirmDelete) return;
+    const openDeleteConfirm = (commentId) => {
+        setCommentToDelete(commentId);
+        setShowDeleteConfirm(true);
+    };
 
-        fetch(`${API_URL}api/comments/${commentId}`, {
+    const deleteComment = () => {
+        if (!commentToDelete) return;
+
+        fetch(`${API_URL}api/comments/${commentToDelete}`, {
             method: "DELETE",
             headers: {
-                Authorization: `Bearer ${token}`
-            }
+                Authorization: `Bearer ${token}`,
+            },
         })
-            .then(res => res.json())
-            .then(() => getComments())
-            .catch(err => console.error("Error eliminando comentario:", err));
+            .then((res) => res.json())
+            .then(() => {
+                toast.success("Comment deleted");
+                getComments();
+                setShowDeleteConfirm(false);
+                setCommentToDelete(null);
+            })
+            .catch((err) => {
+                console.error("Error eliminando comentario:", err);
+                toast.error("Error deleting comment");
+            });
     };
 
     const getAuthorName = (comment) => {
@@ -125,13 +140,13 @@ export const CommentBox = ({ spotId, token }) => {
     };
 
     const getAvatar = (comment) => {
-  return (
-    comment.user?.profile_image ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      getAuthorName(comment)
-    )}&background=ef3340&color=fff`
-  );
-};
+        return (
+            comment.user?.profile_image ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                getAuthorName(comment)
+            )}&background=ef3340&color=fff`
+        );
+    };
 
     const renderActions = (comment) => {
         if (!comment.can_edit) return null;
@@ -142,7 +157,7 @@ export const CommentBox = ({ spotId, token }) => {
                     Edit
                 </button>
 
-                <button type="button" onClick={() => deleteComment(comment.id)}>
+                <button type="button" onClick={() => openDeleteConfirm(comment.id)}>
                     Delete
                 </button>
             </div>
@@ -170,8 +185,8 @@ export const CommentBox = ({ spotId, token }) => {
                     comments.map(comment => (
                         <article key={comment.id} className="comment">
                             <div className="comment__avatar">
-  <img src={getAvatar(comment)} alt={getAuthorName(comment)} />
-</div>
+                                <img src={getAvatar(comment)} alt={getAuthorName(comment)} />
+                            </div>
 
                             <div className="comment__content">
                                 <div className="comment__bubble">
@@ -223,8 +238,8 @@ export const CommentBox = ({ spotId, token }) => {
                                         {comment.replies.map(reply => (
                                             <article key={reply.id} className="reply">
                                                 <div className="reply__avatar">
-  <img src={getAvatar(reply)} alt={getAuthorName(reply)} />
-</div>
+                                                    <img src={getAvatar(reply)} alt={getAuthorName(reply)} />
+                                                </div>
 
                                                 <div className="reply__bubble">
                                                     <div className="comment__top">
@@ -298,6 +313,18 @@ export const CommentBox = ({ spotId, token }) => {
                     Enviar
                 </button>
             </form>
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                title="Delete comment?"
+                message="This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={deleteComment}
+                onCancel={() => {
+                    setShowDeleteConfirm(false);
+                    setCommentToDelete(null);
+                }}
+            />
         </section>
     );
 };

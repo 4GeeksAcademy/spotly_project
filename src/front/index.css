@@ -2005,3 +2005,133 @@ body.dark-mode .explore-map-card {
   height: 100%;
   object-fit: cover;
 }
+.follow-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.follow-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .follow-modal {
+  background: #18181b;
+  color: #f9fafb;
+  border: 1px solid #27272a;
+}
+
+.follow-modal-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dark-mode .follow-modal-header {
+  border-bottom-color: #27272a;
+}
+
+.follow-modal-header h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.follow-modal-header button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.follow-modal-list {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.follow-modal-user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dark-mode .follow-modal-user {
+  border-bottom-color: #27272a;
+}
+
+.follow-modal-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.follow-modal-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.follow-modal-info strong {
+  display: block;
+  font-size: 15px;
+}
+
+.follow-modal-info span {
+  display: block;
+  font-size: 13px;
+  color: #71717a;
+}
+
+.follow-modal-btn {
+  border: none;
+  background: #ef3340;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.follow-modal-btn.following {
+  background: #18181b;
+}
+
+.dark-mode .follow-modal-btn.following {
+  background: #27272a;
+}
+
+.follow-modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.follow-modal-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #71717a;
+}
+
+.profile-stats span {
+  cursor: pointer;
+}
