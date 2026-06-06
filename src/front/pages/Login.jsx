@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const Login = ({ mode = "login", setAuthMode }) => {
@@ -42,7 +43,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
     const data = await response.json();
 
     if (!response.ok) {
-      alert(data.msg);
+      toast.error(data.msg);
       return;
     }
 
@@ -54,7 +55,7 @@ export const Login = ({ mode = "login", setAuthMode }) => {
 
       navigate("/dashboard");
     } else {
-      alert("Welcome to Spotly!");
+      toast.success("Welcome to Spotly!");
       navigate("/login");
     }
   };

@@ -1,44 +1,70 @@
-import { X, MapPin, Heart, Bookmark, Share2, User } from "lucide-react";
+import { X, MapPin, Heart, Bookmark, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import "leaflet/dist/leaflet.css";
-
+import toast from "react-hot-toast";
 import { CommentBox } from "./CommentBox";
 
+const getAvatar = (user) =>
+  user?.profile_image ||
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    `${user?.nombre || ""} ${user?.apellido || ""}`.trim() || "Spotly User"
+  )}&background=ef3340&color=fff`;
+
+const normalizeImages = (images = []) =>
+  images
+    .map((img) => (typeof img === "string" ? img : img?.image_url))
+    .filter(Boolean);
 
 export const SpotDetailsModal = ({ spot, onClose }) => {
   const { store } = useGlobalReducer();
+
   const [visible, setVisible] = useState(false);
   const [activeImage, setActiveImage] = useState("");
   const [localSpot, setLocalSpot] = useState(null);
 
   useEffect(() => {
-    if (spot) {
-      const image =
-        spot.images?.[0] ||
-        spot.image ||
-        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200";
+    if (!spot) return;
 
-      setLocalSpot(spot);
-      setActiveImage(image);
-      requestAnimationFrame(() => setVisible(true));
-    }
+    const normalizedImages = normalizeImages(spot.images);
+    const fallbackImage =
+      spot.image ||
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200";
+
+    const firstImage = normalizedImages[0] || fallbackImage;
+
+    setLocalSpot(spot);
+    setActiveImage(firstImage);
+    requestAnimationFrame(() => setVisible(true));
   }, [spot]);
 
   if (!spot || !localSpot) return null;
 
   const isDark = store.theme === "dark";
 
-  const images =
-    localSpot.images?.length > 0
-      ? localSpot.images
-      : [
-          localSpot.image ||
-            "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200",
-        ];
+  const images = normalizeImages(localSpot.images);
+  const fallbackImage =
+    localSpot.image ||
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200";
 
-  const hasLocation = localSpot.latitude && localSpot.longitude;
+  const displayImages = images.length > 0 ? images : [fallbackImage];
+
+  const creator =
+    localSpot.user ||
+    localSpot.creator ||
+    localSpot.author ||
+    null;
+
+  const creatorName =
+    `${creator?.nombre || ""} ${creator?.apellido || ""}`.trim() ||
+    "Spotly User";
+
+  const hasLocation =
+    localSpot.latitude !== null &&
+    localSpot.latitude !== undefined &&
+    localSpot.longitude !== null &&
+    localSpot.longitude !== undefined;
 
   const handleClose = () => {
     setVisible(false);
@@ -60,17 +86,20 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error(data.msg || "Error liking spot");
+        toast.error(data.msg || "Error liking spot");
         return;
       }
 
       setLocalSpot((prev) => ({
         ...prev,
         liked: data.liked,
+        is_liked: data.liked,
         likes: data.likes,
+        likes_count: data.likes,
       }));
     } catch (err) {
       console.error("Network error liking spot", err);
+      toast.error("Network error liking spot");
     }
   };
 
@@ -89,21 +118,26 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error(data.msg || "Error saving spot");
+        toast.error(data.msg || "Error saving spot");
         return;
       }
 
       setLocalSpot((prev) => ({
         ...prev,
         saved: data.saved,
+        is_favorite: data.saved,
         favorites: data.favorites,
+        favorites_count: data.favorites,
       }));
     } catch (err) {
       console.error("Network error saving spot", err);
+      toast.error("Network error saving spot");
     }
   };
 
   const handleShare = async () => {
+    const spotUrl = `${window.location.origin}/single/${localSpot.id}`;
+
     const shareText = `${localSpot.titulo || "Spot"} - ${
       localSpot.descripcion || "Check this spot on Spotly"
     }`;
@@ -113,10 +147,11 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
         await navigator.share({
           title: localSpot.titulo || "Spotly Spot",
           text: shareText,
+          url: spotUrl,
         });
       } else {
-        await navigator.clipboard.writeText(shareText);
-        alert("Spot copied to clipboard");
+        await navigator.clipboard.writeText(spotUrl);
+        toast.success("Spot link copied");
       }
     } catch (err) {
       console.error("Error sharing spot", err);
@@ -126,7 +161,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
   return (
     <div className="spot-details-modal-overlay" onClick={handleClose}>
       <div
-        className={`spot-details-modal ${isDark ? "dark" : ""}`}
+        className={`spot-details-modal ${isDark ? "dark-mode" : ""}`}
         onClick={(e) => e.stopPropagation()}
         style={{
           transform: visible ? "scale(1)" : "scale(0.96)",
@@ -141,9 +176,9 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
           <img src={activeImage} alt={localSpot.titulo || "Spot"} />
         </div>
 
-        {images.length > 1 && (
+        {displayImages.length > 1 && (
           <div className="spot-details-thumbnails">
-            {images.map((img, index) => (
+            {displayImages.map((img, index) => (
               <img
                 key={index}
                 src={img}
@@ -167,7 +202,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
             </div>
 
             <span className="spot-details-category">
-              {localSpot.category || "Spot"}
+              {localSpot.category?.nombre || localSpot.category || "Spot"}
             </span>
           </div>
 
@@ -175,20 +210,31 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
             <button onClick={toggleLike}>
               <Heart
                 size={19}
-                fill={localSpot.liked ? "#ef3340" : "none"}
-                color={localSpot.liked ? "#ef3340" : "currentColor"}
+                fill={localSpot.liked || localSpot.is_liked ? "#ef3340" : "none"}
+                color={
+                  localSpot.liked || localSpot.is_liked
+                    ? "#ef3340"
+                    : "currentColor"
+                }
               />
-              {localSpot.likes || 0}
+              {localSpot.likes_count ?? localSpot.likes ?? 0}
             </button>
 
             <button onClick={toggleFavorite}>
               <Bookmark
                 size={19}
-                fill={localSpot.saved ? "#ef3340" : "none"}
-                color={localSpot.saved ? "#ef3340" : "currentColor"}
+                fill={
+                  localSpot.saved || localSpot.is_favorite
+                    ? "#ef3340"
+                    : "none"
+                }
+                color={
+                  localSpot.saved || localSpot.is_favorite
+                    ? "#ef3340"
+                    : "currentColor"
+                }
               />
-              
-              {localSpot.favorites ? ` ${localSpot.favorites}` : ""}
+              {localSpot.favorites_count ?? localSpot.favorites ?? 0}
             </button>
 
             <button onClick={handleShare}>
@@ -205,16 +251,11 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
 
           <div className="spot-details-author">
             <div className="author-avatar">
-              <User size={22} />
+              <img src={getAvatar(creator)} alt={creatorName} />
             </div>
 
             <div>
-              <strong>
-                {localSpot.user?.nombre ||
-                  localSpot.creator?.nombre ||
-                  localSpot.author?.nombre ||
-                  "Spotly User"}
-              </strong>
+              <strong>{creatorName}</strong>
               <p>Spot creator</p>
             </div>
           </div>
@@ -243,9 +284,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
             </div>
           )}
 
-
-<CommentBox spotId={spot.id} token={store.token} />
-
+          <CommentBox spotId={localSpot.id} token={store.token} />
         </div>
       </div>
     </div>

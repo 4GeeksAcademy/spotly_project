@@ -96,7 +96,8 @@ def login():
             "nombre": user.nombre,
             "apellido": user.apellido,
             "email": user.email,
-            "tipo_usuario": user.tipo_usuario
+            "tipo_usuario": user.tipo_usuario,
+            "profile_image": user.profile_image,
         }
     }), 200
 
@@ -109,6 +110,27 @@ def profile():
 
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    return jsonify(user.serialize()), 200
+
+
+@api.route("/profile/avatar", methods=["PUT"])
+@jwt_required()
+def update_profile_avatar():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    body = request.get_json() or {}
+    profile_image = body.get("profile_image")
+
+    if not profile_image:
+        return jsonify({"msg": "La imagen de perfil es obligatoria"}), 400
+
+    user.profile_image = profile_image
+    db.session.commit()
 
     return jsonify(user.serialize()), 200
 
@@ -305,6 +327,7 @@ def get_users():
             "id": user.id,
             "nombre": user.nombre,
             "apellido": user.apellido,
+            "profile_image": user.profile_image,
         }
         for user in users
     ]), 200
@@ -596,6 +619,7 @@ def _serialize_spot(spot, current_user_id=None):
             "nombre": spot.user.nombre,
             "apellido": spot.user.apellido,
             "tipo_usuario": spot.user.tipo_usuario,
+            "profile_image": spot.user.profile_image,
         } if spot.user else None,
         "images": [img.image_url for img in spot.images],
     }
@@ -659,14 +683,16 @@ def get_my_following():
 
     follows = Follow.query.filter_by(follower_id=current_user_id).all()
 
-    return jsonify([
-        {
-            "id": f.followed.id,
-            "nombre": f.followed.nombre,
-            "apellido": f.followed.apellido,
-        }
+    following = [
+        f.followed.serialize_public()
         for f in follows
-    ]), 200
+        if f.followed
+    ]
+
+    return jsonify({
+        "count": len(following),
+        "following": following
+    }), 200
 
 
 @api.route("/users/me/followers", methods=["GET"])
@@ -674,17 +700,50 @@ def get_my_following():
 def get_my_followers():
     current_user_id = int(get_jwt_identity())
 
-    count = Follow.query.filter_by(followed_id=current_user_id).count()
+    follows = Follow.query.filter_by(followed_id=current_user_id).all()
 
-    return jsonify({"count": count}), 200
+    followers = [
+        f.follower.serialize_public()
+        for f in follows
+        if f.follower
+    ]
 
+    return jsonify({
+        "count": len(followers),
+        "followers": followers
+    }), 200
+
+@api.route("/users/<int:user_id>/following", methods=["GET"])
+@jwt_required()
+def get_user_following(user_id):
+    follows = Follow.query.filter_by(follower_id=user_id).all()
+
+    following = [
+        f.followed.serialize_public()
+        for f in follows
+        if f.followed
+    ]
+
+    return jsonify({
+        "count": len(following),
+        "following": following
+    }), 200
 
 @api.route("/users/<int:user_id>/followers", methods=["GET"])
 @jwt_required()
 def get_user_followers(user_id):
-    count = Follow.query.filter_by(followed_id=user_id).count()
-    return jsonify({"count": count}), 200
+    follows = Follow.query.filter_by(followed_id=user_id).all()
 
+    followers = [
+        f.follower.serialize_public()
+        for f in follows
+        if f.follower
+    ]
+
+    return jsonify({
+        "count": len(followers),
+        "followers": followers
+    }), 200
 
 @api.route("/users/<int:user_id>", methods=["GET"])
 @jwt_required()

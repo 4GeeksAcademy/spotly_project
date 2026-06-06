@@ -16,6 +16,8 @@ import {
   Globe,
 } from "lucide-react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import toast from "react-hot-toast";
+import { ConfirmModal } from "../components/confirmModal";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
@@ -23,24 +25,40 @@ import { SpotModal } from "./SpotModal";
 import { CommentBox } from "../components/CommentBox";
 import { FollowButton } from "../components/FollowButton";
 
-const ImageCarousel = ({ images, titulo }) => {
-  const [current, setCurrent] = useState(0);
+const getAvatar = (user) =>
+  user?.profile_image ||
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    `${user?.nombre || ""} ${user?.apellido || ""}`.trim() || "Spotly User"
+  )}&background=ef3340&color=fff`;
 
-  if (images.length === 1) {
-    return <img className="single-post-img" src={images[0]} alt={titulo} />;
+const normalizeImages = (images = []) =>
+  images
+    .map((img) => (typeof img === "string" ? img : img?.image_url))
+    .filter(Boolean);
+
+const ImageCarousel = ({ images = [], titulo }) => {
+  const [current, setCurrent] = useState(0);
+  const validImages = normalizeImages(images);
+
+  if (validImages.length === 0) return null;
+
+  if (validImages.length === 1) {
+    return <img className="single-post-img" src={validImages[0]} alt={titulo} />;
   }
 
   return (
     <div style={{ position: "relative", overflow: "hidden", borderRadius: "12px" }}>
       <img
-        src={images[current]}
+        src={validImages[current]}
         alt={`${titulo} ${current + 1}`}
         className="single-post-img"
         style={{ display: "block", width: "100%" }}
       />
 
       <button
-        onClick={() => setCurrent((prev) => (prev - 1 + images.length) % images.length)}
+        onClick={() =>
+          setCurrent((prev) => (prev - 1 + validImages.length) % validImages.length)
+        }
         style={{
           position: "absolute",
           left: 8,
@@ -62,7 +80,7 @@ const ImageCarousel = ({ images, titulo }) => {
       </button>
 
       <button
-        onClick={() => setCurrent((prev) => (prev + 1) % images.length)}
+        onClick={() => setCurrent((prev) => (prev + 1) % validImages.length)}
         style={{
           position: "absolute",
           right: 8,
@@ -93,7 +111,7 @@ const ImageCarousel = ({ images, titulo }) => {
           gap: 5,
         }}
       >
-        {images.map((_, i) => (
+        {validImages.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
@@ -113,8 +131,6 @@ const ImageCarousel = ({ images, titulo }) => {
     </div>
   );
 };
-
-
 
 export const Dashboard = () => {
   const { store } = useGlobalReducer();
@@ -138,9 +154,8 @@ export const Dashboard = () => {
   const [followingIds, setFollowingIds] = useState([]);
   const [loadingId, setLoadingId] = useState(null);
 
-  const toggleComments = (spotId) => {
-    setOpenComments((prev) => ({ ...prev, [spotId]: !prev[spotId] }));
-  };
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [spotToDelete, setSpotToDelete] = useState(null);
 
   useEffect(() => {
     fetchSpots();
@@ -149,14 +164,16 @@ export const Dashboard = () => {
     fetchFollowing();
   }, []);
 
+  const toggleComments = (spotId) => {
+    setOpenComments((prev) => ({ ...prev, [spotId]: !prev[spotId] }));
+  };
+
   const fetchNotifications = async () => {
     try {
       const response = await fetch(
         import.meta.env.VITE_BACKEND_URL + "api/notifications",
         {
-          headers: {
-            Authorization: `Bearer ${store.token}`,
-          },
+          headers: { Authorization: `Bearer ${store.token}` },
         }
       );
 
@@ -177,16 +194,12 @@ export const Dashboard = () => {
         import.meta.env.VITE_BACKEND_URL + `api/notifications/${notification.id}/read`,
         {
           method: "PUT",
-          headers: {
-            Authorization: `Bearer ${store.token}`,
-          },
+          headers: { Authorization: `Bearer ${store.token}` },
         }
       );
 
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notification.id ? { ...n, is_read: true } : n
-        )
+        prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n))
       );
 
       setUnreadCount((prev) =>
@@ -203,40 +216,42 @@ export const Dashboard = () => {
     }
   };
 
-  const fetchFollowing = async () => {
-    try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
-        {
-          headers: {
-            Authorization: `Bearer ${store.token}`,
-          },
-        }
-      );
-      const data = await response.json();
-      if (response.ok) {
-        setFollowingIds(data.map((u) => u.id));
+const fetchFollowing = async () => {
+  try {
+    const response = await fetch(
+      import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
+      {
+        headers: {
+          Authorization: `Bearer ${store.token}`,
+        },
       }
-    } catch (err) {
-      console.error("Error cargando following:", err);
-    }
-  };
+    );
+
+    const data = await response.json();
+
+    const following = Array.isArray(data)
+      ? data
+      : data.following || [];
+
+    setFollowingIds(following.map((user) => user.id));
+
+  } catch (err) {
+    console.error("Error cargando following:", err);
+  }
+};
 
   const fetchSpots = async () => {
     try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/spots",
-        {
-          headers: {
-            Authorization: `Bearer ${store.token}`,
-          },
-        }
-      );
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/spots", {
+        headers: { Authorization: `Bearer ${store.token}` },
+      });
 
       const data = await response.json();
 
+          console.log("FIRST SPOT USER:", (data.spots || data)[0]?.user);
+          
       if (response.ok) {
-        setSpots(data);
+        setSpots(data.spots || data);
       }
     } catch (err) {
       console.error("Error cargando spots:", err);
@@ -245,14 +260,9 @@ export const Dashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + "api/users",
-        {
-          headers: {
-            Authorization: `Bearer ${store.token}`,
-          },
-        }
-      );
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/users", {
+        headers: { Authorization: `Bearer ${store.token}` },
+      });
 
       const data = await response.json();
 
@@ -261,6 +271,143 @@ export const Dashboard = () => {
       }
     } catch (err) {
       console.error("Error cargando usuarios:", err);
+    }
+  };
+
+  const toggleLike = async (spotId) => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}/like`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${store.token}` },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) return;
+
+      setSpots((prevSpots) =>
+        prevSpots.map((spot) =>
+          spot.id === spotId
+            ? {
+                ...spot,
+                liked: data.liked,
+                is_liked: data.liked,
+                likes: data.likes,
+                likes_count: data.likes,
+              }
+            : spot
+        )
+      );
+    } catch (err) {
+      console.error("Network error liking spot", err);
+    }
+  };
+
+  const toggleFavorite = async (spotId) => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}/favorite`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${store.token}` },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) return;
+
+      setSpots((prevSpots) =>
+        prevSpots.map((spot) =>
+          spot.id === spotId
+            ? {
+                ...spot,
+                saved: data.saved,
+                is_favorite: data.saved,
+                favorites: data.favorites,
+                favorites_count: data.favorites,
+              }
+            : spot
+        )
+      );
+    } catch (err) {
+      console.error("Network error saving spot", err);
+    }
+  };
+
+  const handleSpotCreated = (newSpot) => {
+    setSpots((prev) => [newSpot, ...prev]);
+  };
+
+  const openDeleteConfirm = (spotId) => {
+    setSpotToDelete(spotId);
+    setShowConfirmDelete(true);
+  };
+
+  const handleDelete = async () => {
+    if (!spotToDelete) return;
+
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotToDelete}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${store.token}` },
+        }
+      );
+
+      if (response.ok) {
+        setSpots((prev) => prev.filter((spot) => spot.id !== spotToDelete));
+        toast.success("Spot deleted");
+        setShowConfirmDelete(false);
+        setSpotToDelete(null);
+      } else {
+        const data = await response.json();
+        toast.error(data.msg || "Error deleting spot");
+      }
+    } catch (err) {
+      toast.error("Network error deleting spot");
+    }
+  };
+
+  const handleFollowToggle = async (targetUserId) => {
+    if (!store.token) {
+      toast.error("You must be logged in to follow users");
+      return;
+    }
+
+    setLoadingId(targetUserId);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}api/users/${targetUserId}/follow`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.is_following) {
+          setFollowingIds((prev) => [...prev, targetUserId]);
+        } else {
+          setFollowingIds((prev) => prev.filter((id) => id !== targetUserId));
+        }
+      } else {
+        toast.error(data.msg || "Error updating follow");
+      }
+    } catch (error) {
+      toast.error("Network error following user");
+    } finally {
+      setLoadingId(null);
     }
   };
 
@@ -288,9 +435,9 @@ export const Dashboard = () => {
     try {
       await navigator.clipboard.writeText(getSpotUrl(selectedSpot.id));
       setCopied(true);
+      toast.success("Link copied");
     } catch (error) {
-      console.error("Error copying link:", error);
-      alert("Could not copy link");
+      toast.error("Could not copy link");
     }
   };
 
@@ -326,110 +473,13 @@ export const Dashboard = () => {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${spotUrl}`,
       x: `https://twitter.com/intent/tweet?text=${text}&url=${spotUrl}`,
       telegram: `https://t.me/share/url?url=${spotUrl}&text=${text}`,
-      email: `mailto:?subject=${encodeURIComponent(selectedSpot.titulo)}&body=${text}%0A%0A${spotUrl}`,
-      instagram: `https://www.instagram.com/`,
+      email: `mailto:?subject=${encodeURIComponent(
+        selectedSpot.titulo
+      )}&body=${text}%0A%0A${spotUrl}`,
+      instagram: "https://www.instagram.com/",
     };
 
     window.open(urls[platform], "_blank", "noopener,noreferrer");
-  };
-
-  const toggleLike = async (spotId) => {
-    try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}/like`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${store.token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error(data.msg || "Error liking spot");
-        return;
-      }
-
-      setSpots((prevSpots) =>
-        prevSpots.map((spot) =>
-          spot.id === spotId
-            ? {
-              ...spot,
-              liked: data.liked,
-              likes: data.likes,
-            }
-            : spot
-        )
-      );
-    } catch (err) {
-      console.error("Network error liking spot", err);
-    }
-  };
-
-  const toggleFavorite = async (spotId) => {
-    try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}/favorite`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${store.token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error(data.msg || "Error saving spot");
-        return;
-      }
-
-      setSpots((prevSpots) =>
-        prevSpots.map((spot) =>
-          spot.id === spotId
-            ? {
-              ...spot,
-              saved: data.saved,
-              favorites: data.favorites,
-            }
-            : spot
-        )
-      );
-    } catch (err) {
-      console.error("Network error saving spot", err);
-    }
-  };
-
-  const handleSpotCreated = (newSpot) => {
-    setSpots((prev) => [newSpot, ...prev]);
-  };
-
-  const handleDelete = async (spotId) => {
-    if (!confirm("¿Seguro que quieres eliminar este spot?")) return;
-
-    try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND_URL + `api/spots/${spotId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${store.token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        setSpots((prev) => prev.filter((s) => s.id !== spotId));
-      } else {
-        const data = await response.json();
-        alert(data.msg || "Error al eliminar");
-      }
-    } catch (err) {
-      alert("Error de red al eliminar el spot");
-    }
   };
 
   const timeAgo = (isoString) => {
@@ -445,7 +495,7 @@ export const Dashboard = () => {
   };
 
   const canDelete = (spot) =>
-    Number(store.user?.id) === Number(spot.user.id) ||
+    Number(store.user?.id) === Number(spot.user?.id) ||
     store.user?.tipo_usuario === "admin";
 
   const filteredSpots = spots.filter((spot) => {
@@ -454,48 +504,12 @@ export const Dashboard = () => {
     if (!search) return true;
 
     return (
-      spot.user.nombre?.toLowerCase().includes(search) ||
-      spot.user.apellido?.toLowerCase().includes(search) ||
+      spot.user?.nombre?.toLowerCase().includes(search) ||
+      spot.user?.apellido?.toLowerCase().includes(search) ||
       spot.titulo?.toLowerCase().includes(search) ||
       spot.descripcion?.toLowerCase().includes(search)
     );
   });
-
-  const handleFollowToggle = async (targetUserId) => {
-    if (!store.token) {
-      alert("Debes iniciar sesión para seguir usuarios.");
-      return;
-    }
-
-    setLoadingId(targetUserId);
-
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}api/users/${targetUserId}/follow`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${store.token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Si el backend dice que lo empezamos a seguir, lo añadimos a la lista; si no, lo quitamos
-        if (data.is_following) {
-          setFollowingIds((prev) => [...prev, targetUserId]);
-        } else {
-          setFollowingIds((prev) => prev.filter((id) => id !== targetUserId));
-        }
-      } else {
-        console.error(data.msg || "Error al procesar el follow");
-      }
-    } catch (error) {
-      console.error("Error de red al intentar seguir al usuario:", error);
-    } finally {
-      setLoadingId(null);
-    }
-  };
 
   return (
     <div className="spotly-dashboard">
@@ -515,10 +529,7 @@ export const Dashboard = () => {
               }}
             />
 
-            <button
-              className="search-btn"
-              onClick={() => setActiveSearch(searchTerm)}
-            >
+            <button className="search-btn" onClick={() => setActiveSearch(searchTerm)}>
               Search
             </button>
           </div>
@@ -530,11 +541,8 @@ export const Dashboard = () => {
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <Bell size={22} />
-
                 {unreadCount > 0 && (
-                  <span className="topbar-notification-badge">
-                    {unreadCount}
-                  </span>
+                  <span className="topbar-notification-badge">{unreadCount}</span>
                 )}
               </button>
 
@@ -552,8 +560,9 @@ export const Dashboard = () => {
                     notifications.slice(0, 5).map((notification) => (
                       <div
                         key={notification.id}
-                        className={`notifications-dropdown-item ${notification.is_read ? "read" : "unread"
-                          }`}
+                        className={`notifications-dropdown-item ${
+                          notification.is_read ? "read" : "unread"
+                        }`}
                         onClick={() => handleNotificationClick(notification)}
                         style={{ cursor: "pointer" }}
                       >
@@ -579,7 +588,7 @@ export const Dashboard = () => {
               )}
             </div>
 
-            <img src="https://i.pravatar.cc/100?img=12" alt="User" />
+            <img src={getAvatar(store.user)} alt="User" />
 
             <div>
               <strong>
@@ -591,7 +600,7 @@ export const Dashboard = () => {
 
         <section className="create-post-card">
           <div>
-            <img src="https://i.pravatar.cc/100?img=12" alt="User" />
+            <img src={getAvatar(store.user)} alt="User" />
           </div>
 
           <div className="create-post-actions">
@@ -619,21 +628,18 @@ export const Dashboard = () => {
           {filteredSpots.map((spot) => (
             <article className="spot-post" key={spot.id}>
               <div className="post-header">
-                <img
-                  src={`https://i.pravatar.cc/100?u=${spot.user.id}`}
-                  alt={spot.user.nombre}
-                />
+                <img src={getAvatar(spot.user)} alt={spot.user?.nombre || "User"} />
 
                 <div>
                   <strong>
-                    {spot.user.nombre} {spot.user.apellido}
+                    {spot.user?.nombre} {spot.user?.apellido}
                   </strong>
                   <p>{timeAgo(spot.created_at)}</p>
                 </div>
 
                 {canDelete(spot) && (
                   <button
-                    onClick={() => handleDelete(spot.id)}
+                    onClick={() => openDeleteConfirm(spot.id)}
                     title="Delete spot"
                     style={{
                       marginLeft: "auto",
@@ -678,21 +684,16 @@ export const Dashboard = () => {
                 </a>
               )}
 
-              {spot.images.length > 0 && (
-                <ImageCarousel images={spot.images} titulo={spot.titulo} />
-              )}
+              <ImageCarousel images={spot.images || []} titulo={spot.titulo} />
 
               <div className="post-actions">
-                <button
-                  className="like-btn"
-                  onClick={() => toggleLike(spot.id)}
-                >
+                <button className="like-btn" onClick={() => toggleLike(spot.id)}>
                   <Heart
                     size={20}
-                    fill={spot.liked ? "#ef3340" : "none"}
-                    color={spot.liked ? "#ef3340" : "currentColor"}
+                    fill={spot.liked || spot.is_liked ? "#ef3340" : "none"}
+                    color={spot.liked || spot.is_liked ? "#ef3340" : "currentColor"}
                   />
-                  {spot.likes || 0}
+                  {spot.likes_count ?? spot.likes ?? 0}
                 </button>
 
                 <button
@@ -710,23 +711,19 @@ export const Dashboard = () => {
                   <MessageCircle size={20} />
                 </button>
 
-                <button
-                  className="like-btn"
-                  onClick={() => openShareModal(spot)}
-                >
+                <button className="like-btn" onClick={() => openShareModal(spot)}>
                   <Share2 size={20} />
                 </button>
 
-                <button
-                  className="like-btn"
-                  onClick={() => toggleFavorite(spot.id)}
-                >
+                <button className="like-btn" onClick={() => toggleFavorite(spot.id)}>
                   <Bookmark
                     size={20}
-                    fill={spot.saved ? "#ff5a5f" : "none"}
-                    color={spot.saved ? "#ff5a5f" : "currentColor"}
+                    fill={spot.saved || spot.is_favorite ? "#ff5a5f" : "none"}
+                    color={
+                      spot.saved || spot.is_favorite ? "#ff5a5f" : "currentColor"
+                    }
                   />
-                  {spot.favorites || 0}
+                  {spot.favorites_count ?? spot.favorites ?? 0}
                 </button>
               </div>
 
@@ -745,34 +742,28 @@ export const Dashboard = () => {
             <span>All</span>
           </div>
 
-          {users.slice(0, 5).map((user) => {
-            const isFollowing = followingIds.includes(user.id);
-            const isLoading = loadingId === user.id;
+          {users.slice(0, 5).map((user) => (
+            <div className="suggestion" key={user.id}>
+              <img src={getAvatar(user)} alt={user.nombre || "User"} />
 
-            return (
-              <div className="suggestion" key={user.id}>
-                <img
-                  src={`https://i.pravatar.cc/100?u=${user.id}`}
-                  alt={user.nombre}
-                />
-
-                <div onClick={() => navigate(`/profile/${user.id}`)}
-                  style={{ cursor: "pointer", flex: 1 }}>
-                  <strong>
-                    {user.nombre} {user.apellido}
-                  </strong>
-                  <p>Spotly user</p>
-                </div>
-
-                <FollowButton
-                  userId={user.id}
-                  isFollowing={followingIds.includes(user.id)}
-                  isLoading={loadingId === user.id}
-                  onToggle={handleFollowToggle}
-                />
+              <div
+                onClick={() => navigate(`/profile/${user.id}`)}
+                style={{ cursor: "pointer", flex: 1 }}
+              >
+                <strong>
+                  {user.nombre} {user.apellido}
+                </strong>
+                <p>Spotly user</p>
               </div>
-            );
-          })}
+
+              <FollowButton
+                userId={user.id}
+                isFollowing={followingIds.includes(user.id)}
+                isLoading={loadingId === user.id}
+                onToggle={handleFollowToggle}
+              />
+            </div>
+          ))}
 
           {users.length === 0 && (
             <p style={{ fontSize: "0.85rem", color: "#aaa", padding: "0.5rem 0" }}>
@@ -780,6 +771,7 @@ export const Dashboard = () => {
             </p>
           )}
         </div>
+
         <div className="right-card">
           <div className="card-title">
             <h3>Trending spots</h3>
@@ -790,7 +782,6 @@ export const Dashboard = () => {
             (trend, index) => (
               <div className="trend" key={index}>
                 <span>{index + 1}</span>
-
                 <div>
                   <strong>{trend}</strong>
                   <p>{12 - index * 2}.4K posts</p>
@@ -873,6 +864,19 @@ export const Dashboard = () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showConfirmDelete}
+        title="Delete spot?"
+        message="This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setShowConfirmDelete(false);
+          setSpotToDelete(null);
+        }}
+      />
 
       <SpotModal
         isOpen={showSpot}

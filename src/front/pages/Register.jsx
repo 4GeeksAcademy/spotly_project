@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export const Register = () => {
   const navigate = useNavigate();
@@ -11,44 +12,61 @@ export const Register = () => {
     password: "",
     telefono: "",
     pais: "",
-    genero: ""
+    genero: "",
   });
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const response = await fetch(
-      import.meta.env.VITE_BACKEND_URL + "/api/register",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(formData)
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.msg || "Error creating account");
+        return;
       }
-    );
 
-    const data = await response.json();
+      toast.success("Account created successfully");
 
-    if (!response.ok) {
-      alert(data.msg);
-      return;
+      setTimeout(() => {
+        navigate("/login");
+      }, 1000);
+    } catch (error) {
+      console.error(error);
+      toast.error("Server connection error");
+    } finally {
+      setLoading(false);
     }
-
-    alert("Cuenta creada correctamente");
-    navigate("/login");
   };
 
   return (
     <div className="bg-light min-vh-100 d-flex justify-content-center align-items-center py-5">
-      <div className="card shadow p-4 border-0 rounded-4" style={{ width: "430px" }}>
+      <div
+        className="card shadow p-4 border-0 rounded-4"
+        style={{ width: "430px" }}
+      >
         <h2 className="text-center mb-2 text-danger">
           Sign up
         </h2>
@@ -145,13 +163,19 @@ export const Register = () => {
             </select>
           </div>
 
-          <button className="btn btn-danger w-100">
-            Create the account
+          <button
+            type="submit"
+            className="btn btn-danger w-100"
+            disabled={loading}
+          >
+            {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
         <div className="text-center mt-3">
-          <span className="text-muted">¿Do you have an account? </span>
+          <span className="text-muted">
+            Do you already have an account?
+          </span>{" "}
           <Link to="/login" className="text-danger">
             LOG IN
           </Link>

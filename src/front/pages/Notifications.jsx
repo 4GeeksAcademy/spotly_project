@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 
 export const Notifications = () => {
   const { store } = useGlobalReducer();
+  const navigate = useNavigate();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const getAvatar = (user) =>
+    user?.profile_image ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      `${user?.nombre || ""} ${user?.apellido || ""}`.trim() || "Spotly User"
+    )}&background=ef3340&color=fff`;
 
   const getNotifications = async () => {
     try {
@@ -54,6 +63,19 @@ export const Notifications = () => {
       );
     } catch (error) {
       console.error("Error marcando notificación:", error);
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    await markAsRead(notification.id);
+
+    if (notification.spot_id) {
+      navigate(`/single/${notification.spot_id}`);
+      return;
+    }
+
+    if (notification.sender_id) {
+      navigate(`/profile/${notification.sender_id}`);
     }
   };
 
@@ -110,20 +132,28 @@ export const Notifications = () => {
           <div className="notifications-empty">
             <Bell size={36} />
             <h3>No notifications yet</h3>
-            <p>When someone comments on your spot, it will appear here.</p>
+            <p>When someone interacts with you, it will appear here.</p>
           </div>
         ) : (
           <div className="notifications-list">
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`notification-card ${notification.is_read ? "read" : "unread"
-                  }`}
+                className={`notification-card ${
+                  notification.is_read ? "read" : "unread"
+                }`}
                 onClick={() => handleNotificationClick(notification)}
                 style={{ cursor: "pointer" }}
               >
-                <div className="notification-icon">
-                  <Bell size={20} />
+                <div className="notification-icon notification-avatar">
+                  {notification.sender ? (
+                    <img
+                      src={getAvatar(notification.sender)}
+                      alt={notification.sender.nombre || "User"}
+                    />
+                  ) : (
+                    <Bell size={20} />
+                  )}
                 </div>
 
                 <div className="notification-content">
@@ -139,7 +169,10 @@ export const Notifications = () => {
                 {!notification.is_read && (
                   <button
                     className="mark-read-btn"
-                    onClick={() => markAsRead(notification.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAsRead(notification.id);
+                    }}
                   >
                     Mark as read
                   </button>
