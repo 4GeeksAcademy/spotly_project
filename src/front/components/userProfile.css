@@ -262,3 +262,49 @@
 .settings-option:hover {
   background: #f5f5f5;
 }
+/* ===== DARK MODE PROFILE ===== */
+
+.dark-mode .profile-page {
+  background: var(--spotly-dark);
+  color: white;
+}
+
+.dark-mode .profile-top h2 {
+  color: white;
+}
+
+.dark-mode .profile-stats span {
+  color: #d1d5db;
+}
+
+.dark-mode .profile-bio p {
+  color: #d1d5db;
+}
+
+.dark-mode .profile-tabs {
+  border-top: 1px solid #2a2f38;
+}
+
+.dark-mode .profile-tabs .active {
+  color: white;
+}
+
+.dark-mode .profile-tabs button {
+  color: #9ca3af;
+}
+/* ===== DARK MODE SETTINGS MENU ===== */
+
+.dark-mode .settings-menu {
+  background: #111827;
+  border: 1px solid #2a2f38;
+  backdrop-filter: blur(10px);
+}
+
+
+.dark-mode .settings-option {
+  color: #e5e7eb;
+}
+
+.dark-mode .settings-option:hover {
+  background: #374151;
+}

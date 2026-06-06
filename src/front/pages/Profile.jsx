@@ -15,6 +15,17 @@ import useGlobalReducer from "../hooks/useGlobalReducer";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
+const getUserAvatar = (user, fallbackName = "Spotly User") =>
+  user?.profile_image ||
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    `${user?.nombre || ""} ${user?.apellido || ""}`.trim() || fallbackName
+  )}&background=ef3340&color=fff`;
+
+const getSpotImage = (spot) =>
+  spot.images?.[0]?.image_url ||
+  spot.images?.[0] ||
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900";
+
 export const Profile = () => {
   const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
@@ -62,6 +73,8 @@ export const Profile = () => {
     if (Array.isArray(data.users)) return data.users;
     if (Array.isArray(data.followers)) return data.followers;
     if (Array.isArray(data.following)) return data.following;
+    if (Array.isArray(data.data)) return data.data;
+    if (Array.isArray(data.results)) return data.results;
     return [];
   };
 
@@ -137,7 +150,6 @@ export const Profile = () => {
       });
 
       const data = await res.json();
-      console.log("FOLLOW MODAL RESPONSE:", data);
 
       if (res.ok) {
         const users = normalizeUsersResponse(data);
@@ -253,17 +265,33 @@ export const Profile = () => {
           setFollowingIds((prev) =>
             prev.includes(targetId) ? prev : [...prev, targetId]
           );
-          setFollowersCount((prev) =>
-            Number(targetId) === Number(targetUserId) ? prev + 1 : prev
-          );
+
+          if (isOwnProfile) {
+            setFollowingCount((prev) => prev + 1);
+          }
+
+          if (Number(targetId) === Number(targetUserId)) {
+            setFollowersCount((prev) => prev + 1);
+          }
+
           toast.success("Following user");
         } else {
           setFollowingIds((prev) => prev.filter((id) => id !== targetId));
-          setFollowersCount((prev) =>
-            Number(targetId) === Number(targetUserId)
-              ? Math.max(prev - 1, 0)
-              : prev
-          );
+
+          if (isOwnProfile) {
+            setFollowingCount((prev) => Math.max(prev - 1, 0));
+          }
+
+          if (Number(targetId) === Number(targetUserId)) {
+            setFollowersCount((prev) => Math.max(prev - 1, 0));
+          }
+
+          if (followModalType === "following" && isOwnProfile) {
+            setFollowModalUsers((prev) =>
+              prev.filter((user) => Number(user.id) !== Number(targetId))
+            );
+          }
+
           toast.success("Unfollowed user");
         }
       } else {
@@ -397,7 +425,10 @@ export const Profile = () => {
                     className="edit-input"
                     value={userData.username}
                     onChange={(e) =>
-                      setUserData({ ...userData, username: e.target.value })
+                      setUserData({
+                        ...userData,
+                        username: e.target.value,
+                      })
                     }
                   />
                 ) : (
@@ -436,7 +467,9 @@ export const Profile = () => {
                               disabled={uploadingPhoto}
                               onChange={(e) => {
                                 const file = e.target.files[0];
-                                uploadProfileImage(file);
+                                if (file) {
+                                  uploadProfileImage(file);
+                                }
                                 setShowSettings(false);
                               }}
                             />
@@ -496,14 +529,21 @@ export const Profile = () => {
                       className="edit-input"
                       value={userData.location}
                       onChange={(e) =>
-                        setUserData({ ...userData, location: e.target.value })
+                        setUserData({
+                          ...userData,
+                          location: e.target.value,
+                        })
                       }
                     />
+
                     <textarea
                       className="edit-textarea"
                       value={userData.bio}
                       onChange={(e) =>
-                        setUserData({ ...userData, bio: e.target.value })
+                        setUserData({
+                          ...userData,
+                          bio: e.target.value,
+                        })
                       }
                     />
                   </>
@@ -539,17 +579,19 @@ export const Profile = () => {
           <section className="profile-posts">
             {visiblePosts.length > 0 ? (
               visiblePosts.map((spot) => {
-                const image =
-                  spot.images?.[0]?.image_url ||
-                  spot.images?.[0] ||
-                  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900";
+                const image = getSpotImage(spot);
+                const avatarUser =
+                  activeTab === "saved" ? spot.user || targetUser : targetUser;
 
                 return (
                   <div className="profile-post" key={spot.id}>
                     <img src={image} alt={spot.titulo || "post"} />
 
                     <div className="profile-post-user">
-                      <img src={getAvatarUrl()} alt={userData.username || "User"} />
+                      <img
+                        src={getUserAvatar(avatarUser, userData.username)}
+                        alt={userData.username || "User"}
+                      />
                     </div>
 
                     <button className="post-menu">
