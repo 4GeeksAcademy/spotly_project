@@ -233,7 +233,7 @@ const fetchFollowing = async () => {
       ? data
       : data.following || [];
 
-    setFollowingIds(following.map((user) => user.id));
+    setFollowingIds(following.map((user) => Number(user.id)));
 
   } catch (err) {
     console.error("Error cargando following:", err);
@@ -248,8 +248,7 @@ const fetchFollowing = async () => {
 
       const data = await response.json();
 
-          console.log("FIRST SPOT USER:", (data.spots || data)[0]?.user);
-          
+
       if (response.ok) {
         setSpots(data.spots || data);
       }
@@ -397,9 +396,13 @@ const fetchFollowing = async () => {
 
       if (response.ok) {
         if (data.is_following) {
-          setFollowingIds((prev) => [...prev, targetUserId]);
+          setFollowingIds((prev) =>
+            prev.includes(Number(targetUserId)) ? prev : [...prev, Number(targetUserId)]
+          );
         } else {
-          setFollowingIds((prev) => prev.filter((id) => id !== targetUserId));
+          setFollowingIds((prev) =>
+            prev.filter((id) => Number(id) !== Number(targetUserId))
+          );
         }
       } else {
         toast.error(data.msg || "Error updating follow");
@@ -588,9 +591,14 @@ const fetchFollowing = async () => {
               )}
             </div>
 
-            <img src={getAvatar(store.user)} alt="User" />
+            <img
+              src={getAvatar(store.user)}
+              alt="User"
+              onClick={() => navigate("/profile")}
+              style={{ cursor: "pointer" }}
+            />
 
-            <div>
+            <div onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
               <strong>
                 {store.user?.nombre} {store.user?.apellido}
               </strong>
@@ -599,7 +607,7 @@ const fetchFollowing = async () => {
         </header>
 
         <section className="create-post-card">
-          <div>
+          <div onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
             <img src={getAvatar(store.user)} alt="User" />
           </div>
 
@@ -628,9 +636,17 @@ const fetchFollowing = async () => {
           {filteredSpots.map((spot) => (
             <article className="spot-post" key={spot.id}>
               <div className="post-header">
-                <img src={getAvatar(spot.user)} alt={spot.user?.nombre || "User"} />
+                <img
+                  src={getAvatar(spot.user)}
+                  alt={spot.user?.nombre || "User"}
+                  onClick={() => spot.user?.id && navigate(`/profile/${spot.user.id}`)}
+                  style={{ cursor: spot.user?.id ? "pointer" : "default" }}
+                />
 
-                <div>
+                <div
+                  onClick={() => spot.user?.id && navigate(`/profile/${spot.user.id}`)}
+                  style={{ cursor: spot.user?.id ? "pointer" : "default" }}
+                >
                   <strong>
                     {spot.user?.nombre} {spot.user?.apellido}
                   </strong>
@@ -661,7 +677,9 @@ const fetchFollowing = async () => {
                 )}
               </div>
 
-              <p className="post-text">{spot.descripcion}</p>
+              {spot.titulo && <h3 className="post-title">{spot.titulo}</h3>}
+
+              {spot.descripcion && <p className="post-text">{spot.descripcion}</p>}
 
               {spot.latitude != null && spot.longitude != null && (
                 <a
@@ -744,7 +762,12 @@ const fetchFollowing = async () => {
 
           {users.slice(0, 5).map((user) => (
             <div className="suggestion" key={user.id}>
-              <img src={getAvatar(user)} alt={user.nombre || "User"} />
+              <img
+                src={getAvatar(user)}
+                alt={user.nombre || "User"}
+                onClick={() => navigate(`/profile/${user.id}`)}
+                style={{ cursor: "pointer" }}
+              />
 
               <div
                 onClick={() => navigate(`/profile/${user.id}`)}
@@ -758,8 +781,8 @@ const fetchFollowing = async () => {
 
               <FollowButton
                 userId={user.id}
-                isFollowing={followingIds.includes(user.id)}
-                isLoading={loadingId === user.id}
+                isFollowing={followingIds.includes(Number(user.id))}
+                isLoading={Number(loadingId) === Number(user.id)}
                 onToggle={handleFollowToggle}
               />
             </div>

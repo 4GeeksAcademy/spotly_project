@@ -3,11 +3,41 @@ import { Search, MapPin, Heart, Bookmark } from "lucide-react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { SpotDetailsModal } from "../components/SpotDetailsModal";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { LocationSearch } from "../components/LocationSearch";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useNavigate } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
+
+const FlyToLocation = ({ center }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, 13);
+    }
+  }, [center, map]);
+
+  return null;
+};
+
+const getSpotImage = (spot) => {
+  const firstImage = spot.images?.[0];
+
+  if (typeof firstImage === "string") return firstImage;
+  if (firstImage?.image_url) return firstImage.image_url;
+
+  return spot.image || "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=700";
+};
+
+const getUserAvatar = (user) =>
+  user?.profile_image ||
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    `${user?.nombre || ""} ${user?.apellido || ""}`.trim() || "Spotly User"
+  )}&background=ef3340&color=fff`;
 
 export const Explore = () => {
   const { store } = useGlobalReducer();
+  const navigate = useNavigate();
 
   const [spots, setSpots] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -15,9 +45,16 @@ export const Explore = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedSpot, setSelectedSpot] = useState(null);
+  const [mapCenter, setMapCenter] = useState([25.7617, -80.1918]);
+  const [searchedLocation, setSearchedLocation] = useState("");
+
+  const isDark = store.theme === "dark";
 
   const getSpots = async () => {
     try {
+      setLoading(true);
+      setError("");
+
       const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/spots", {
         headers: {
           Authorization: `Bearer ${store.token}`,
@@ -31,8 +68,21 @@ export const Explore = () => {
         return;
       }
 
-      setSpots(data.spots || data);
+      const loadedSpots = data.spots || data;
+      setSpots(Array.isArray(loadedSpots) ? loadedSpots : []);
+
+      const firstSpotWithLocation = loadedSpots.find(
+        (spot) => spot.latitude != null && spot.longitude != null
+      );
+
+      if (firstSpotWithLocation) {
+        setMapCenter([
+          Number(firstSpotWithLocation.latitude),
+          Number(firstSpotWithLocation.longitude),
+        ]);
+      }
     } catch (err) {
+      console.error("Network error loading spots", err);
       setError("Network error loading spots");
     } finally {
       setLoading(false);
@@ -40,30 +90,69 @@ export const Explore = () => {
   };
 
   useEffect(() => {
-    getSpots();
-  }, []);
+    if (store.token) {
+      getSpots();
+    }
+  }, [store.token]);
+
+  const handleLocationSearch = ([lat, lng, displayName]) => {
+    setMapCenter([lat, lng]);
+    setSearchedLocation(displayName || "Selected location");
+  };
 
   const updateSpotLike = (spotId, liked, likes) => {
     setSpots((prevSpots) =>
       prevSpots.map((spot) =>
-        spot.id === spotId ? { ...spot, liked, likes } : spot
+        spot.id === spotId
+          ? {
+              ...spot,
+              liked,
+              is_liked: liked,
+              likes,
+              likes_count: likes,
+            }
+          : spot
       )
     );
 
     setSelectedSpot((prevSpot) =>
-      prevSpot?.id === spotId ? { ...prevSpot, liked, likes } : prevSpot
+      prevSpot?.id === spotId
+        ? {
+            ...prevSpot,
+            liked,
+            is_liked: liked,
+            likes,
+            likes_count: likes,
+          }
+        : prevSpot
     );
   };
 
   const updateSpotFavorite = (spotId, saved, favorites) => {
     setSpots((prevSpots) =>
       prevSpots.map((spot) =>
-        spot.id === spotId ? { ...spot, saved, favorites } : spot
+        spot.id === spotId
+          ? {
+              ...spot,
+              saved,
+              is_favorite: saved,
+              favorites,
+              favorites_count: favorites,
+            }
+          : spot
       )
     );
 
     setSelectedSpot((prevSpot) =>
-      prevSpot?.id === spotId ? { ...prevSpot, saved, favorites } : prevSpot
+      prevSpot?.id === spotId
+        ? {
+            ...prevSpot,
+            saved,
+            is_favorite: saved,
+            favorites,
+            favorites_count: favorites,
+          }
+        : prevSpot
     );
   };
 
@@ -117,20 +206,36 @@ export const Explore = () => {
     }
   };
 
-  const categories = ["All", "Rooftop", "Coffee", "Murals", "Beach", "Studio", "Viewpoint"];
+  const openUserProfile = (userId) => {
+    if (!userId) return;
+    navigate(`/profile/${userId}`);
+  };
+
+  const categories = [
+    "All",
+    "Rooftop",
+    "Coffee",
+    "Murals",
+    "Beach",
+    "Studio",
+    "Viewpoint",
+  ];
 
   const filteredSpots = spots.filter((spot) => {
     const title = spot.titulo || spot.title || "";
     const description = spot.descripcion || spot.description || "";
     const location = spot.location || spot.city || "";
-    const category = spot.category || "";
-    const search = searchTerm.toLowerCase();
+    const category = spot.category?.nombre || spot.category || "";
+    const userName = `${spot.user?.nombre || ""} ${spot.user?.apellido || ""}`;
+    const search = searchTerm.toLowerCase().trim();
 
     const matchesSearch =
+      !search ||
       title.toLowerCase().includes(search) ||
       description.toLowerCase().includes(search) ||
       location.toLowerCase().includes(search) ||
-      category.toLowerCase().includes(search);
+      category.toLowerCase().includes(search) ||
+      userName.toLowerCase().includes(search);
 
     const matchesCategory =
       activeCategory === "All" ||
@@ -140,13 +245,8 @@ export const Explore = () => {
   });
 
   const spotsWithLocation = filteredSpots.filter(
-    (spot) => spot.latitude && spot.longitude
+    (spot) => spot.latitude != null && spot.longitude != null
   );
-
-  const mapCenter =
-    spotsWithLocation.length > 0
-      ? [spotsWithLocation[0].latitude, spotsWithLocation[0].longitude]
-      : [25.7617, -80.1918];
 
   return (
     <div className="spotly-dashboard">
@@ -163,7 +263,7 @@ export const Explore = () => {
             <div className="explore-search">
               <Search size={20} />
               <input
-                placeholder="Search spots..."
+                placeholder="Search spots, users or places..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -182,29 +282,60 @@ export const Explore = () => {
             ))}
           </div>
 
-          {!loading && !error && spotsWithLocation.length > 0 && (
+          {!loading && !error && (
             <section className="explore-map-card">
+              <div style={{ padding: "1rem 1rem 0" }}>
+                <LocationSearch
+                  onLocationSelect={handleLocationSearch}
+                  isDark={isDark}
+                />
+
+                {searchedLocation && (
+                  <p
+                    style={{
+                      margin: "0 0 0.75rem",
+                      fontSize: "0.85rem",
+                      color: isDark ? "#9ca3af" : "#6b7280",
+                    }}
+                  >
+                    Map focused on: {searchedLocation}
+                  </p>
+                )}
+              </div>
+
               <MapContainer
                 center={mapCenter}
                 zoom={11}
                 scrollWheelZoom={true}
                 className="explore-map"
               >
+                <FlyToLocation center={mapCenter} />
+
                 <TileLayer
                   attribution="&copy; OpenStreetMap contributors"
                   url={
-                    store.theme === "dark"
+                    isDark
                       ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                       : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   }
                 />
 
                 {spotsWithLocation.map((spot) => (
-                  <Marker key={spot.id} position={[spot.latitude, spot.longitude]}>
+                  <Marker
+                    key={spot.id}
+                    position={[Number(spot.latitude), Number(spot.longitude)]}
+                  >
                     <Popup>
                       <div className="map-popup">
                         <strong>{spot.titulo || spot.title}</strong>
                         <p>{spot.descripcion || "No description available."}</p>
+
+                        {spot.user && (
+                          <button onClick={() => openUserProfile(spot.user.id)}>
+                            View profile
+                          </button>
+                        )}
+
                         <button onClick={() => setSelectedSpot(spot)}>
                           View spot
                         </button>
@@ -232,31 +363,63 @@ export const Explore = () => {
             <section className="explore-grid">
               {filteredSpots.length > 0 ? (
                 filteredSpots.map((spot) => {
-                  const image =
-                    spot.images?.[0] ||
-                    spot.image ||
-                    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=700";
+                  const image = getSpotImage(spot);
+                  const liked = spot.liked || spot.is_liked;
+                  const saved = spot.saved || spot.is_favorite;
+                  const likesCount = spot.likes_count ?? spot.likes ?? 0;
+                  const favoritesCount = spot.favorites_count ?? spot.favorites ?? 0;
+                  const category = spot.category?.nombre || spot.category || "Spot";
 
                   return (
                     <article className="explore-card" key={spot.id}>
-                      <img src={image} alt={spot.titulo || "Spot"} />
+                      <img
+                        src={image}
+                        alt={spot.titulo || "Spot"}
+                        onClick={() => setSelectedSpot(spot)}
+                        style={{ cursor: "pointer" }}
+                      />
 
                       <div className="explore-card-overlay">
-                        <span>{spot.category || "Spot"}</span>
+                        <span>{category}</span>
 
                         <button
                           onClick={() => toggleFavorite(spot.id)}
-                          title={spot.saved ? "Remove from saved" : "Save spot"}
+                          title={saved ? "Remove from saved" : "Save spot"}
                         >
                           <Bookmark
                             size={18}
-                            fill={spot.saved ? "#ef3340" : "none"}
-                            color={spot.saved ? "#ef3340" : "currentColor"}
+                            fill={saved ? "#ef3340" : "none"}
+                            color={saved ? "#ef3340" : "currentColor"}
                           />
                         </button>
                       </div>
 
                       <div className="explore-card-content">
+                        <div
+                          onClick={() => spot.user?.id && openUserProfile(spot.user.id)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.55rem",
+                            cursor: spot.user?.id ? "pointer" : "default",
+                            marginBottom: "0.65rem",
+                          }}
+                        >
+                          <img
+                            src={getUserAvatar(spot.user)}
+                            alt={spot.user?.nombre || "User"}
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: "50%",
+                              objectFit: "cover",
+                            }}
+                          />
+                          <strong style={{ fontSize: "0.9rem" }}>
+                            {spot.user?.nombre} {spot.user?.apellido}
+                          </strong>
+                        </div>
+
                         <h3>{spot.titulo || spot.title}</h3>
 
                         <p>
@@ -271,10 +434,10 @@ export const Explore = () => {
                           >
                             <Heart
                               size={17}
-                              fill={spot.liked ? "#ef3340" : "none"}
-                              color={spot.liked ? "#ef3340" : "currentColor"}
+                              fill={liked ? "#ef3340" : "none"}
+                              color={liked ? "#ef3340" : "currentColor"}
                             />
-                            {spot.likes || 0}
+                            {likesCount}
                           </button>
 
                           <button
@@ -283,10 +446,10 @@ export const Explore = () => {
                           >
                             <Bookmark
                               size={17}
-                              fill={spot.saved ? "#ef3340" : "none"}
-                              color={spot.saved ? "#ef3340" : "currentColor"}
+                              fill={saved ? "#ef3340" : "none"}
+                              color={saved ? "#ef3340" : "currentColor"}
                             />
-                            {spot.favorites || 0}
+                            {favoritesCount}
                           </button>
 
                           <button onClick={() => setSelectedSpot(spot)}>

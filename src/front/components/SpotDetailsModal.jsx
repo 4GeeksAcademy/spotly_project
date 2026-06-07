@@ -1,5 +1,6 @@
 import { X, MapPin, Heart, Bookmark, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import "leaflet/dist/leaflet.css";
@@ -17,8 +18,9 @@ const normalizeImages = (images = []) =>
     .map((img) => (typeof img === "string" ? img : img?.image_url))
     .filter(Boolean);
 
-export const SpotDetailsModal = ({ spot, onClose }) => {
+export const SpotDetailsModal = ({ spot, onClose, onSpotUpdate }) => {
   const { store } = useGlobalReducer();
+  const navigate = useNavigate();
 
   const [visible, setVisible] = useState(false);
   const [activeImage, setActiveImage] = useState("");
@@ -27,7 +29,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
   useEffect(() => {
     if (!spot) return;
 
-    const normalizedImages = normalizeImages(spot.images);
+    const normalizedImages = normalizeImages(spot.images || []);
     const fallbackImage =
       spot.image ||
       "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200";
@@ -43,18 +45,14 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
 
   const isDark = store.theme === "dark";
 
-  const images = normalizeImages(localSpot.images);
+  const images = normalizeImages(localSpot.images || []);
   const fallbackImage =
     localSpot.image ||
     "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200";
 
   const displayImages = images.length > 0 ? images : [fallbackImage];
 
-  const creator =
-    localSpot.user ||
-    localSpot.creator ||
-    localSpot.author ||
-    null;
+  const creator = localSpot.user || localSpot.creator || localSpot.author || null;
 
   const creatorName =
     `${creator?.nombre || ""} ${creator?.apellido || ""}`.trim() ||
@@ -66,9 +64,28 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
     localSpot.longitude !== null &&
     localSpot.longitude !== undefined;
 
+  const liked = localSpot.liked || localSpot.is_liked;
+  const saved = localSpot.saved || localSpot.is_favorite;
+  const likesCount = localSpot.likes_count ?? localSpot.likes ?? 0;
+  const favoritesCount = localSpot.favorites_count ?? localSpot.favorites ?? 0;
+
   const handleClose = () => {
     setVisible(false);
     setTimeout(() => onClose(), 220);
+  };
+
+  const goToCreatorProfile = () => {
+    if (!creator?.id) return;
+    handleClose();
+    navigate(`/profile/${creator.id}`);
+  };
+
+  const updateLocalSpot = (updates) => {
+    setLocalSpot((prev) => {
+      const updated = { ...prev, ...updates };
+      onSpotUpdate?.(updated);
+      return updated;
+    });
   };
 
   const toggleLike = async () => {
@@ -90,13 +107,12 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
         return;
       }
 
-      setLocalSpot((prev) => ({
-        ...prev,
+      updateLocalSpot({
         liked: data.liked,
         is_liked: data.liked,
         likes: data.likes,
         likes_count: data.likes,
-      }));
+      });
     } catch (err) {
       console.error("Network error liking spot", err);
       toast.error("Network error liking spot");
@@ -122,13 +138,12 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
         return;
       }
 
-      setLocalSpot((prev) => ({
-        ...prev,
+      updateLocalSpot({
         saved: data.saved,
         is_favorite: data.saved,
         favorites: data.favorites,
         favorites_count: data.favorites,
-      }));
+      });
     } catch (err) {
       console.error("Network error saving spot", err);
       toast.error("Network error saving spot");
@@ -210,31 +225,19 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
             <button onClick={toggleLike}>
               <Heart
                 size={19}
-                fill={localSpot.liked || localSpot.is_liked ? "#ef3340" : "none"}
-                color={
-                  localSpot.liked || localSpot.is_liked
-                    ? "#ef3340"
-                    : "currentColor"
-                }
+                fill={liked ? "#ef3340" : "none"}
+                color={liked ? "#ef3340" : "currentColor"}
               />
-              {localSpot.likes_count ?? localSpot.likes ?? 0}
+              {likesCount}
             </button>
 
             <button onClick={toggleFavorite}>
               <Bookmark
                 size={19}
-                fill={
-                  localSpot.saved || localSpot.is_favorite
-                    ? "#ef3340"
-                    : "none"
-                }
-                color={
-                  localSpot.saved || localSpot.is_favorite
-                    ? "#ef3340"
-                    : "currentColor"
-                }
+                fill={saved ? "#ef3340" : "none"}
+                color={saved ? "#ef3340" : "currentColor"}
               />
-              {localSpot.favorites_count ?? localSpot.favorites ?? 0}
+              {favoritesCount}
             </button>
 
             <button onClick={handleShare}>
@@ -249,7 +252,12 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
               "No description available."}
           </p>
 
-          <div className="spot-details-author">
+          <div
+            className="spot-details-author"
+            onClick={goToCreatorProfile}
+            style={{ cursor: creator?.id ? "pointer" : "default" }}
+            title={creator?.id ? "View profile" : ""}
+          >
             <div className="author-avatar">
               <img src={getAvatar(creator)} alt={creatorName} />
             </div>
@@ -263,7 +271,7 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
           {hasLocation && (
             <div className="spot-details-map">
               <MapContainer
-                center={[localSpot.latitude, localSpot.longitude]}
+                center={[Number(localSpot.latitude), Number(localSpot.longitude)]}
                 zoom={14}
                 scrollWheelZoom={false}
                 style={{ height: "100%", width: "100%" }}
@@ -277,8 +285,17 @@ export const SpotDetailsModal = ({ spot, onClose }) => {
                   }
                 />
 
-                <Marker position={[localSpot.latitude, localSpot.longitude]}>
-                  <Popup>{localSpot.titulo || "Spot"}</Popup>
+                <Marker
+                  position={[Number(localSpot.latitude), Number(localSpot.longitude)]}
+                >
+                  <Popup>
+                    <div className="map-popup">
+                      <strong>{localSpot.titulo || "Spot"}</strong>
+                      {creator?.id && (
+                        <button onClick={goToCreatorProfile}>View creator</button>
+                      )}
+                    </div>
+                  </Popup>
                 </Marker>
               </MapContainer>
             </div>

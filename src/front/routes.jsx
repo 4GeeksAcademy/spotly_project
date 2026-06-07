@@ -20,7 +20,6 @@ import { Notifications } from "./pages/Notifications";
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      {/* ── Rutas CON el Layout del home (navbar, etc.) ── */}
       <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
         <Route index element={<Home />} />
         <Route path="login" element={<Login mode="login" />} />
@@ -28,7 +27,6 @@ export const router = createBrowserRouter(
         <Route path="demo" element={<Demo />} />
       </Route>
 
-      {/* ── Rutas SIN Layout (dashboard, perfil, etc.) ── */}
       <Route
         path="/dashboard"
         element={
@@ -38,7 +36,14 @@ export const router = createBrowserRouter(
         }
       />
 
-      <Route path="/crear-spot" element={<SpotModal />} />
+      <Route
+        path="/crear-spot"
+        element={
+          <ProtectedRoute>
+            <SpotModal />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/explore"
@@ -76,7 +81,14 @@ export const router = createBrowserRouter(
         }
       />
 
-      <Route path="/single/:theId" element={<Single />} />
+      <Route
+        path="/single/:theId"
+        element={
+          <ProtectedRoute>
+            <Single />
+          </ProtectedRoute>
+        }
+      />
 
       <Route path="*" element={<h1>Not found!</h1>} />
     </>

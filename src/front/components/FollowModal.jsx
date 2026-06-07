@@ -1,4 +1,5 @@
 import { X, UserPlus, UserCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const getAvatar = (user) =>
   user?.profile_image ||
@@ -24,11 +25,20 @@ export const FollowModal = ({
   onClose,
   onToggleFollow,
 }) => {
+  const navigate = useNavigate();
+
   if (!isOpen) return null;
 
   const normalizedUsers = users
     .map((item) => getDisplayUser(item))
     .filter(Boolean);
+
+  const goToProfile = (userId) => {
+    if (!userId) return;
+
+    onClose?.();
+    navigate(`/profile/${userId}`);
+  };
 
   return (
     <div className="follow-modal-overlay" onClick={onClose}>
@@ -47,7 +57,7 @@ export const FollowModal = ({
               <p>No users found.</p>
             </div>
           ) : (
-            normalizedUsers.map((user) => {
+            normalizedUsers.map((user, index) => {
               const userId = getUserId(user);
               const isOwnUser = Number(userId) === Number(currentUserId);
               const isFollowing = followingIds
@@ -56,14 +66,20 @@ export const FollowModal = ({
               const isLoading = Number(loadingId) === Number(userId);
 
               return (
-                <div className="follow-modal-user" key={userId}>
+                <div className="follow-modal-user" key={userId || index}>
                   <img
                     className="follow-modal-avatar"
                     src={getAvatar(user)}
                     alt={user?.nombre || "User"}
+                    onClick={() => goToProfile(userId)}
+                    style={{ cursor: "pointer" }}
                   />
 
-                  <div className="follow-modal-info">
+                  <div
+                    className="follow-modal-info"
+                    onClick={() => goToProfile(userId)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <strong>
                       {user?.nombre || "Spotly"} {user?.apellido || "User"}
                     </strong>
@@ -77,7 +93,10 @@ export const FollowModal = ({
                         isFollowing ? "following" : ""
                       }`}
                       disabled={isLoading}
-                      onClick={() => onToggleFollow(userId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFollow(userId);
+                      }}
                     >
                       {isFollowing ? (
                         <>

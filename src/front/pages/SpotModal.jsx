@@ -1,5 +1,6 @@
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import { useEffect, useState, useRef } from "react";
+import { LocationSearch } from "../components/LocationSearch";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -14,15 +15,27 @@ L.Icon.Default.mergeOptions({
 const LocationPicker = ({ onLocationSelect }) => {
   useMapEvents({
     click(e) {
-      onLocationSelect([e.latlng.lat, e.latlng.lng]);
+      onLocationSelect([e.latlng.lat, e.latlng.lng, "Selected from map"]);
     },
   });
+
+  return null;
+};
+
+const MapFlyTo = ({ position }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (position) {
+      map.flyTo(position, 15);
+    }
+  }, [position, map]);
+
   return null;
 };
 
 export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
   const { store } = useGlobalReducer();
-
   const isDark = store.theme === "dark";
 
   const colors = {
@@ -38,6 +51,7 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
 
   const [userPosition, setUserPosition] = useState(null);
   const [selectedPosition, setSelectedPosition] = useState(null);
+  const [locationName, setLocationName] = useState("");
   const [myImages, setMyImages] = useState([]);
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -57,10 +71,15 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
   useEffect(() => {
     if (!isOpen) return;
 
-    const watcher = navigator.geolocation.watchPosition((pos) => {
-      const coords = [pos.coords.latitude, pos.coords.longitude];
-      setUserPosition(coords);
-    });
+    const watcher = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords = [pos.coords.latitude, pos.coords.longitude];
+        setUserPosition(coords);
+      },
+      () => {
+        setUserPosition([20.6767, -101.3563]);
+      }
+    );
 
     return () => navigator.geolocation.clearWatch(watcher);
   }, [isOpen]);
@@ -76,6 +95,7 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
+
     return () => {
       document.body.style.overflow = "";
     };
@@ -89,6 +109,7 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
       setDescripcion("");
       setMyImages([]);
       setSelectedPosition(null);
+      setLocationName("");
       setError("");
       onClose();
     }, 250);
@@ -96,6 +117,11 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
 
   const handleOverlayClick = (e) => {
     if (e.target === overlayRef.current) handleClose();
+  };
+
+  const handleLocationSelect = ([lat, lng, displayName]) => {
+    setSelectedPosition([lat, lng]);
+    setLocationName(displayName || "Selected location");
   };
 
   const uploadImages = async (e) => {
@@ -115,6 +141,10 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
           method: "POST",
           body: formData,
         });
+
+        if (!response.ok) {
+          throw new Error("Upload failed");
+        }
 
         const url = await response.json();
         uploadedUrls.push(url);
@@ -138,6 +168,11 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
       return;
     }
 
+    if (!activePosition) {
+      setError("Debes seleccionar una ubicación.");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
@@ -151,8 +186,8 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
         body: JSON.stringify({
           titulo: nombre,
           descripcion,
-          latitude: activePosition?.[0] ?? null,
-          longitude: activePosition?.[1] ?? null,
+          latitude: activePosition[0],
+          longitude: activePosition[1],
           images: myImages,
         }),
       });
@@ -175,7 +210,7 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
 
   if (!isOpen) return null;
 
-  const mapCenter = activePosition || userPosition || [20.6767, -101.3563];
+  const mapCenter = activePosition || [20.6767, -101.3563];
 
   return (
     <div
@@ -262,12 +297,15 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
             }}
           >
             <span style={{ fontSize: "0.85rem", color: colors.muted }}>
-              📍 Click on the map to select a location
+              📍 Search a location or click on the map
             </span>
 
             {selectedPosition && (
               <button
-                onClick={() => setSelectedPosition(null)}
+                onClick={() => {
+                  setSelectedPosition(null);
+                  setLocationName("");
+                }}
                 style={{
                   fontSize: "0.8rem",
                   color: colors.danger,
@@ -283,6 +321,14 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
             )}
           </div>
 
+          <LocationSearch onLocationSelect={handleLocationSelect} isDark={isDark} />
+
+          {locationName && (
+            <p style={{ color: colors.muted, fontSize: "13px", marginBottom: "10px" }}>
+              Selected: {locationName}
+            </p>
+          )}
+
           <div
             style={{
               borderRadius: "1rem",
@@ -297,6 +343,8 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
               scrollWheelZoom={true}
               style={{ height: "100%", width: "100%", cursor: "crosshair" }}
             >
+              <MapFlyTo position={activePosition} />
+
               <TileLayer
                 attribution="&copy; OpenStreetMap contributors"
                 url={
@@ -306,7 +354,7 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
                 }
               />
 
-              <LocationPicker onLocationSelect={setSelectedPosition} />
+              <LocationPicker onLocationSelect={handleLocationSelect} />
 
               {activePosition && (
                 <Marker position={activePosition}>
@@ -482,7 +530,10 @@ export const SpotModal = ({ isOpen, onClose, onSpotCreated }) => {
               fontWeight: 800,
               cursor: loading || uploadingImages ? "not-allowed" : "pointer",
               marginTop: "0.3rem",
-              boxShadow: loading || uploadingImages ? "none" : "0 10px 30px rgba(255,90,95,0.35)",
+              boxShadow:
+                loading || uploadingImages
+                  ? "none"
+                  : "0 10px 30px rgba(255,90,95,0.35)",
             }}
           >
             {loading ? "Publishing..." : "Create Spot"}

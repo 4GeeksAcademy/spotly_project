@@ -3,6 +3,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import toast from "react-hot-toast";
 
 export const Notifications = () => {
   const { store } = useGlobalReducer();
@@ -10,6 +11,8 @@ export const Notifications = () => {
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [markingAll, setMarkingAll] = useState(false);
+  const [markingId, setMarkingId] = useState(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -20,30 +23,41 @@ export const Notifications = () => {
     )}&background=ef3340&color=fff`;
 
   const getNotifications = async () => {
+    if (!store.token) return;
+
     try {
-      const response = await fetch(`${backendUrl}/api/notifications`, {
+      setLoading(true);
+
+      const response = await fetch(`${backendUrl}api/notifications`, {
         headers: {
           Authorization: `Bearer ${store.token}`,
         },
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Error cargando notificaciones");
+        toast.error(data.msg || "Error loading notifications");
+        return;
       }
 
-      const data = await response.json();
-      setNotifications(data);
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error cargando notificaciones:", error);
+      console.error("Error loading notifications:", error);
+      toast.error("Network error loading notifications");
     } finally {
       setLoading(false);
     }
   };
 
   const markAsRead = async (notificationId) => {
+    if (!notificationId || !store.token) return false;
+
     try {
+      setMarkingId(notificationId);
+
       const response = await fetch(
-        `${backendUrl}/api/notifications/${notificationId}/read`,
+        `${backendUrl}api/notifications/${notificationId}/read`,
         {
           method: "PUT",
           headers: {
@@ -52,7 +66,12 @@ export const Notifications = () => {
         }
       );
 
-      if (!response.ok) return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.msg || "Error marking notification as read");
+        return false;
+      }
 
       setNotifications((prev) =>
         prev.map((notification) =>
@@ -61,16 +80,31 @@ export const Notifications = () => {
             : notification
         )
       );
+
+      return true;
     } catch (error) {
-      console.error("Error marcando notificación:", error);
+      console.error("Error marking notification:", error);
+      toast.error("Network error updating notification");
+      return false;
+    } finally {
+      setMarkingId(null);
     }
   };
 
   const handleNotificationClick = async (notification) => {
-    await markAsRead(notification.id);
+    if (!notification) return;
+
+    if (!notification.is_read) {
+      await markAsRead(notification.id);
+    }
 
     if (notification.spot_id) {
       navigate(`/single/${notification.spot_id}`);
+      return;
+    }
+
+    if (notification.sender?.id) {
+      navigate(`/profile/${notification.sender.id}`);
       return;
     }
 
@@ -79,16 +113,33 @@ export const Notifications = () => {
     }
   };
 
+  const handleSenderClick = (e, sender) => {
+    e.stopPropagation();
+
+    if (sender?.id) {
+      navigate(`/profile/${sender.id}`);
+    }
+  };
+
   const markAllAsRead = async () => {
+    if (!store.token) return;
+
     try {
-      const response = await fetch(`${backendUrl}/api/notifications/read-all`, {
+      setMarkingAll(true);
+
+      const response = await fetch(`${backendUrl}api/notifications/read-all`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${store.token}`,
         },
       });
 
-      if (!response.ok) return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.msg || "Error marking all notifications as read");
+        return;
+      }
 
       setNotifications((prev) =>
         prev.map((notification) => ({
@@ -96,15 +147,18 @@ export const Notifications = () => {
           is_read: true,
         }))
       );
+
+      toast.success("All notifications marked as read");
     } catch (error) {
-      console.error("Error marcando todas:", error);
+      console.error("Error marking all notifications:", error);
+      toast.error("Network error updating notifications");
+    } finally {
+      setMarkingAll(false);
     }
   };
 
   useEffect(() => {
-    if (store.token) {
-      getNotifications();
-    }
+    getNotifications();
   }, [store.token]);
 
   return (
@@ -119,9 +173,13 @@ export const Notifications = () => {
           </div>
 
           {notifications.some((notification) => !notification.is_read) && (
-            <button className="mark-all-btn" onClick={markAllAsRead}>
+            <button
+              className="mark-all-btn"
+              onClick={markAllAsRead}
+              disabled={markingAll}
+            >
               <CheckCheck size={18} />
-              Mark all as read
+              {markingAll ? "Marking..." : "Mark all as read"}
             </button>
           )}
         </div>
@@ -145,7 +203,11 @@ export const Notifications = () => {
                 onClick={() => handleNotificationClick(notification)}
                 style={{ cursor: "pointer" }}
               >
-                <div className="notification-icon notification-avatar">
+                <div
+                  className="notification-icon notification-avatar"
+                  onClick={(e) => handleSenderClick(e, notification.sender)}
+                  style={{ cursor: notification.sender?.id ? "pointer" : "default" }}
+                >
                   {notification.sender ? (
                     <img
                       src={getAvatar(notification.sender)}
@@ -169,12 +231,13 @@ export const Notifications = () => {
                 {!notification.is_read && (
                   <button
                     className="mark-read-btn"
+                    disabled={markingId === notification.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       markAsRead(notification.id);
                     }}
                   >
-                    Mark as read
+                    {markingId === notification.id ? "Marking..." : "Mark as read"}
                   </button>
                 )}
               </div>
