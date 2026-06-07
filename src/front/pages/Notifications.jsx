@@ -5,6 +5,24 @@ import useGlobalReducer from "../hooks/useGlobalReducer";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import toast from "react-hot-toast";
 
+const NotificationsSkeleton = () => (
+  <div className="notifications-list">
+    {[1, 2, 3, 4].map((item) => (
+      <div className="notification-card" key={item}>
+        <div className="skeleton skeleton-avatar" />
+
+        <div style={{ flex: 1 }}>
+          <div className="skeleton skeleton-line full" />
+          <div className="skeleton skeleton-line medium" />
+          <div className="skeleton skeleton-line tiny" />
+        </div>
+
+        <div className="skeleton skeleton-pill" />
+      </div>
+    ))}
+  </div>
+);
+
 export const Notifications = () => {
   const { store } = useGlobalReducer();
   const navigate = useNavigate();
@@ -172,7 +190,7 @@ export const Notifications = () => {
             <p>Stay updated with activity on your spots.</p>
           </div>
 
-          {notifications.some((notification) => !notification.is_read) && (
+          {!loading && notifications.some((notification) => !notification.is_read) && (
             <button
               className="mark-all-btn"
               onClick={markAllAsRead}
@@ -185,7 +203,7 @@ export const Notifications = () => {
         </div>
 
         {loading ? (
-          <div className="notifications-empty">Loading notifications...</div>
+          <NotificationsSkeleton />
         ) : notifications.length === 0 ? (
           <div className="notifications-empty">
             <Bell size={36} />

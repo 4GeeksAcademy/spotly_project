@@ -20,6 +20,54 @@ const FlyToLocation = ({ center }) => {
   return null;
 };
 
+
+const ExploreSkeleton = () => (
+  <>
+    <section className="explore-map-card explore-map-skeleton-card">
+      <div style={{ padding: "1rem" }}>
+        <div className="skeleton skeleton-line full" style={{ height: 42 }} />
+      </div>
+
+      <div className="skeleton explore-map-skeleton" />
+    </section>
+
+    <section className="explore-grid">
+      {[1, 2, 3, 4, 5, 6].map((item) => (
+        <article className="explore-card" key={item}>
+          <div className="skeleton explore-card-image-skeleton" />
+
+          <div className="explore-card-content">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.55rem",
+                marginBottom: "0.75rem",
+              }}
+            >
+              <div
+                className="skeleton skeleton-avatar"
+                style={{ width: 32, height: 32 }}
+              />
+              <div className="skeleton skeleton-line short" />
+            </div>
+
+            <div className="skeleton skeleton-title" />
+            <div className="skeleton skeleton-line medium" />
+
+            <div className="skeleton-actions">
+              <div className="skeleton skeleton-pill" />
+              <div className="skeleton skeleton-pill" />
+              <div className="skeleton skeleton-pill" />
+            </div>
+          </div>
+        </article>
+      ))}
+    </section>
+  </>
+);
+
+
 const getSpotImage = (spot) => {
   const firstImage = spot.images?.[0];
 
@@ -347,11 +395,7 @@ export const Explore = () => {
             </section>
           )}
 
-          {loading && (
-            <div className="spot-post">
-              <p>Loading spots...</p>
-            </div>
-          )}
+          {loading && <ExploreSkeleton />}
 
           {error && (
             <div className="spot-post">
@@ -477,3 +521,4 @@ export const Explore = () => {
     </div>
   );
 };
+

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { MapPin, Bell, User, Home, Compass, Moon, Sun } from "lucide-react";
+import { MapPin, Bell, User, MessageCircle, Home, Compass, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import spotlyLogo from "../assets/img/spotlylogo-bbg.png";
 
@@ -58,13 +59,10 @@ export const DashboardSidebar = () => {
           <Home size={20} /> Dashboard
         </a>
 
-        <a onClick={() => navigate("/explore")}>
-          <Compass size={20} /> Explore
-        </a>
-
-        <a>
-          <MapPin size={20} /> Spots
-        </a>
+        <NavLink to="/messages">
+          <MessageCircle size={20} />
+          Messages
+        </NavLink>
 
         <a onClick={() => navigate("/notifications")} className="notifications-link">
           <div className="notifications-icon-wrapper">

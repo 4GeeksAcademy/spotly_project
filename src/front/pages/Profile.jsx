@@ -4,6 +4,11 @@ import {
   Bookmark,
   BadgeCheck,
   Ellipsis,
+  MapPin,
+  Image,
+  Heart,
+  Users,
+  UserPlus,
 } from "lucide-react";
 
 import { DashboardSidebar } from "../components/DashboardSidebar";
@@ -27,6 +32,39 @@ const getSpotImage = (spot) =>
   spot.images?.[0] ||
   "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900";
 
+const ProfileSkeleton = () => (
+  <div className="profile-page">
+    <section className="profile-header profile-header--skeleton">
+      <div className="profile-skeleton-avatar skeleton" />
+
+      <div className="profile-skeleton-info">
+        <div className="skeleton skeleton-line skeleton-title" />
+        <div className="profile-stat-cards">
+          {[1, 2, 3, 4, 5].map((item) => (
+            <div className="profile-stat-card" key={item}>
+              <div className="skeleton skeleton-number" />
+              <div className="skeleton skeleton-label" />
+            </div>
+          ))}
+        </div>
+        <div className="skeleton skeleton-line" />
+        <div className="skeleton skeleton-line short" />
+      </div>
+    </section>
+
+    <section className="profile-tabs profile-tabs--skeleton">
+      <div className="skeleton skeleton-tab" />
+      <div className="skeleton skeleton-tab" />
+    </section>
+
+    <section className="profile-posts">
+      {[1, 2, 3, 4, 5, 6].map((item) => (
+        <div className="profile-post profile-post--skeleton skeleton" key={item} />
+      ))}
+    </section>
+  </div>
+);
+
 export const Profile = () => {
   const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
@@ -44,6 +82,8 @@ export const Profile = () => {
   const [loadingId, setLoadingId] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [stats, setStats] = useState({
     total_spots: 0,
     total_likes: 0,
@@ -91,6 +131,9 @@ export const Profile = () => {
     if (!targetUserId || !store.token) return;
 
     try {
+      setProfileLoading(true);
+      setPostsLoading(true);
+
       const res = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}api/users/${targetUserId}/public-profile`,
         {
@@ -126,6 +169,9 @@ export const Profile = () => {
     } catch (err) {
       console.error("Error loading public profile:", err);
       toast.error("Error loading profile");
+    } finally {
+      setProfileLoading(false);
+      setPostsLoading(false);
     }
   };
 
@@ -142,7 +188,7 @@ export const Profile = () => {
       const data = await res.json();
 
       if (res.ok) {
-        const allSpots = data.spots || data;
+        const allSpots = Array.isArray(data) ? data : data.spots || [];
         setSavedSpots(allSpots.filter((spot) => spot.saved || spot.is_favorite));
       }
     } catch (err) {
@@ -336,6 +382,17 @@ export const Profile = () => {
 
   const visiblePosts = activeTab === "saved" ? savedSpots : spots;
 
+  if (profileLoading) {
+    return (
+      <div className="spotly-dashboard">
+        <DashboardSidebar />
+        <main className="dashboard-main">
+          <ProfileSkeleton />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="spotly-dashboard">
       <DashboardSidebar />
@@ -343,10 +400,14 @@ export const Profile = () => {
       <main className="dashboard-main">
         <div className="profile-page">
           <section className="profile-header">
-            <div className="profile-avatar">
-              <img src={getAvatarUrl()} alt="profile" />
+            <div className="profile-cover-glow" />
 
-              {isOwnProfile && (
+            <div className="profile-avatar-card">
+              <div className="profile-avatar">
+                <img src={getAvatarUrl()} alt="profile" />
+              </div>
+
+              {isOwnProfile && editing && (
                 <label className="change-photo-btn">
                   {uploadingPhoto ? "Uploading..." : "Change Photo"}
                   <input
@@ -367,7 +428,7 @@ export const Profile = () => {
               <div className="profile-top">
                 {isOwnProfile && editing ? (
                   <input
-                    className="edit-input"
+                    className="edit-input profile-name-input"
                     value={userData.username}
                     onChange={(e) =>
                       setUserData({
@@ -377,92 +438,77 @@ export const Profile = () => {
                     }
                   />
                 ) : (
-                  <h2>
-                    {userData.username || "Spotly User"}
-                    <BadgeCheck size={22} fill="#ff4d67" color="#ff4d67" />
-                  </h2>
+                  <div>
+                    <p className="profile-eyebrow">
+                      {isOwnProfile ? "Your creator profile" : "Spotly creator"}
+                    </p>
+                    <h2>
+                      {userData.username || "Spotly User"}
+                      <BadgeCheck size={22} fill="#ff4d67" color="#ff4d67" />
+                    </h2>
+                  </div>
                 )}
 
-                {isOwnProfile && (
-                  <>
-                    <button
-                      className="edit-btn"
-                      onClick={() => setEditing(!editing)}
-                    >
-                      {editing ? "Save Profile" : "Edit Profile"}
-                    </button>
-
-                    <div className="settings-container">
+                <div className="profile-actions-row">
+                  {isOwnProfile && (
+                    <>
                       <button
-                        className="settings-btn"
-                        onClick={() => setShowSettings(!showSettings)}
+                        className="edit-btn"
+                        onClick={() => setEditing(!editing)}
                       >
-                        <Settings size={22} />
-                        <span>Settings</span>
+                        {editing ? "Save Profile" : "Edit Profile"}
                       </button>
 
-                      {showSettings && (
-                        <div className="settings-menu">
-                          <label className="settings-option">
-                            {uploadingPhoto ? "Uploading..." : "Change Photo"}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              hidden
-                              disabled={uploadingPhoto}
-                              onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (file) uploadProfileImage(file);
-                                setShowSettings(false);
+                      <div className="settings-container">
+                        <button
+                          className="settings-btn"
+                          onClick={() => setShowSettings(!showSettings)}
+                        >
+                          <Settings size={22} />
+                          <span>Settings</span>
+                        </button>
+
+                        {showSettings && (
+                          <div className="settings-menu">
+                            <label className="settings-option">
+                              {uploadingPhoto ? "Uploading..." : "Change Photo"}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                hidden
+                                disabled={uploadingPhoto}
+                                onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file) uploadProfileImage(file);
+                                  setShowSettings(false);
+                                }}
+                              />
+                            </label>
+
+                            <button
+                              className="settings-option logout-option"
+                              onClick={() => {
+                                dispatch({ type: "logout" });
+                                navigate("/");
                               }}
-                            />
-                          </label>
+                            >
+                              Log Out
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
 
-                          <button
-                            className="settings-option logout-option"
-                            onClick={() => {
-                              dispatch({ type: "logout" });
-                              navigate("/");
-                            }}
-                          >
-                            Log Out
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {!isOwnProfile && (
-                  <FollowButton
-                    userId={Number(targetUserId)}
-                    isFollowing={followingIds.includes(Number(targetUserId))}
-                    isLoading={loadingId === Number(targetUserId)}
-                    onToggle={handleFollowToggle}
-                  />
-                )}
-              </div>
-
-              <div className="profile-stats">
-                <span>
-                  <strong>{stats.total_spots || spots.length}</strong> posts
-                </span>
-
-                <span onClick={() => openFollowModal("followers")}>
-                  <strong>{followersCount}</strong> followers
-                </span>
-
-                <span onClick={() => openFollowModal("following")}>
-                  <strong>{followingCount}</strong> following
-                </span>
-
-                <span>
-                  <strong>{stats.total_likes || 0}</strong> likes
-                </span>
-
-                <span>
-                  <strong>{stats.total_favorites || 0}</strong> saves
-                </span>
+                  {!isOwnProfile && (
+                    <FollowButton
+                      userId={Number(targetUserId)}
+                      isFollowing={followingIds.includes(Number(targetUserId))}
+                      isLoading={loadingId === Number(targetUserId)}
+                      onToggle={handleFollowToggle}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="profile-bio">
@@ -492,11 +538,46 @@ export const Profile = () => {
                   </>
                 ) : (
                   <>
-                    <p>{userData.location}</p>
+                    <p className="profile-location">
+                      <MapPin size={16} />
+                      {userData.location.replace("📍", "").trim() || "Digital nomad"}
+                    </p>
                     <p>{userData.bio}</p>
                     <p>📸 Coffee lover | Adventure seeker</p>
                   </>
                 )}
+              </div>
+
+              <div className="profile-stat-cards">
+                <button className="profile-stat-card" onClick={() => setActiveTab("posts")}>
+                  <Image size={18} />
+                  <strong>{stats.total_spots || spots.length}</strong>
+                  <span>Posts</span>
+                </button>
+
+                <button className="profile-stat-card" onClick={() => openFollowModal("followers")}>
+                  <Users size={18} />
+                  <strong>{followersCount}</strong>
+                  <span>Followers</span>
+                </button>
+
+                <button className="profile-stat-card" onClick={() => openFollowModal("following")}>
+                  <UserPlus size={18} />
+                  <strong>{followingCount}</strong>
+                  <span>Following</span>
+                </button>
+
+                <div className="profile-stat-card">
+                  <Heart size={18} />
+                  <strong>{stats.total_likes || 0}</strong>
+                  <span>Likes</span>
+                </div>
+
+                <div className="profile-stat-card">
+                  <Bookmark size={18} />
+                  <strong>{stats.total_favorites || 0}</strong>
+                  <span>Saves</span>
+                </div>
               </div>
             </div>
           </section>
@@ -520,7 +601,11 @@ export const Profile = () => {
           </section>
 
           <section className="profile-posts">
-            {visiblePosts.length > 0 ? (
+            {postsLoading ? (
+              [1, 2, 3, 4, 5, 6].map((item) => (
+                <div className="profile-post profile-post--skeleton skeleton" key={item} />
+              ))
+            ) : visiblePosts.length > 0 ? (
               visiblePosts.map((spot) => {
                 const image = getSpotImage(spot);
                 const avatarUser =
@@ -548,6 +633,14 @@ export const Profile = () => {
                       />
                     </div>
 
+                    <div className="profile-post-overlay">
+                      <strong>{spot.titulo || "Untitled Spot"}</strong>
+                      <span>
+                        {spot.likes ?? spot.likes_count ?? 0} likes ·{" "}
+                        {spot.favorites ?? spot.favorites_count ?? 0} saves
+                      </span>
+                    </div>
+
                     <button
                       className="post-menu"
                       onClick={(e) => e.stopPropagation()}
@@ -558,11 +651,13 @@ export const Profile = () => {
                 );
               })
             ) : (
-              <div className="spot-post">
+              <div className="profile-empty-state">
+                <div>{activeTab === "saved" ? "🔖" : "📍"}</div>
+                <h3>{activeTab === "saved" ? "No saved spots yet" : "No posts yet"}</h3>
                 <p>
                   {activeTab === "saved"
-                    ? "No saved spots yet."
-                    : "No posts yet."}
+                    ? "Saved spots will appear here."
+                    : "When this user creates spots, they will show up here."}
                 </p>
               </div>
             )}

@@ -566,6 +566,37 @@ def mark_all_notifications_as_read():
 
     return jsonify({"msg": "Notificaciones marcadas como leídas"}), 200
 
+@api.route("/spots/trending", methods=["GET"])
+@jwt_required()
+def get_trending_spots():
+    current_user_id = int(get_jwt_identity())
+
+    spots = Spot.query.all()
+
+    trending = []
+
+    for spot in spots:
+        likes_count = Like.query.filter_by(spot_id=spot.id).count()
+        favorites_count = Favorite.query.filter_by(spot_id=spot.id).count()
+        comments_count = Comment.query.filter_by(
+            spot_id=spot.id,
+            parent_id=None
+        ).count()
+
+        score = (likes_count * 3) + (favorites_count * 2) + comments_count
+
+        spot_data = _serialize_spot(spot, current_user_id)
+        spot_data["trending_score"] = score
+
+        trending.append(spot_data)
+
+    trending = sorted(
+        trending,
+        key=lambda spot: spot["trending_score"],
+        reverse=True
+    )
+
+    return jsonify(trending[:5]), 200
 
 def _serialize_spot(spot, current_user_id=None):
     lat, lng = None, None
