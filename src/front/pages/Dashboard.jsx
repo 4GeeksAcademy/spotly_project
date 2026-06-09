@@ -18,6 +18,7 @@ import {
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import toast from "react-hot-toast";
 import { ConfirmModal } from "../components/confirmModal";
+import { SpotDetailsModal } from "../components/SpotDetailsModal";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { DashboardSidebar } from "../components/DashboardSidebar";
@@ -132,12 +133,42 @@ const ImageCarousel = ({ images = [], titulo }) => {
   );
 };
 
+const FeedSkeleton = () => (
+  <>
+    {[1, 2].map((item) => (
+      <article className="spot-post dashboard-skeleton-post" key={item}>
+        <div className="skeleton-row">
+          <div className="skeleton skeleton-avatar" />
+          <div style={{ flex: 1 }}>
+            <div className="skeleton skeleton-line short" />
+            <div className="skeleton skeleton-line tiny" />
+          </div>
+        </div>
+
+        <div className="skeleton skeleton-title" />
+        <div className="skeleton skeleton-line full" />
+        <div className="skeleton skeleton-line medium" />
+        <div className="skeleton skeleton-image" />
+
+        <div className="skeleton-actions">
+          <div className="skeleton skeleton-pill" />
+          <div className="skeleton skeleton-pill" />
+          <div className="skeleton skeleton-pill" />
+          <div className="skeleton skeleton-pill" />
+        </div>
+      </article>
+    ))}
+  </>
+);
+
 export const Dashboard = () => {
   const { store } = useGlobalReducer();
   const navigate = useNavigate();
 
   const [showSpot, setShowSpot] = useState(false);
   const [spots, setSpots] = useState([]);
+  const [loadingSpots, setLoadingSpots] = useState(true);
+  const [trendingSpots, setTrendingSpots] = useState([]);
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
@@ -149,6 +180,7 @@ export const Dashboard = () => {
   const [openComments, setOpenComments] = useState({});
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState(null);
+  const [viewSpot, setViewSpot] = useState(null);
   const [copied, setCopied] = useState(false);
 
   const [followingIds, setFollowingIds] = useState([]);
@@ -158,11 +190,14 @@ export const Dashboard = () => {
   const [spotToDelete, setSpotToDelete] = useState(null);
 
   useEffect(() => {
+    if (!store.token) return;
+
     fetchSpots();
+    fetchTrendingSpots();
     fetchUsers();
     fetchNotifications();
     fetchFollowing();
-  }, []);
+  }, [store.token]);
 
   const toggleComments = (spotId) => {
     setOpenComments((prev) => ({ ...prev, [spotId]: !prev[spotId] }));
@@ -180,8 +215,9 @@ export const Dashboard = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setNotifications(data);
-        setUnreadCount(data.filter((notification) => !notification.is_read).length);
+        const safeData = Array.isArray(data) ? data : [];
+        setNotifications(safeData);
+        setUnreadCount(safeData.filter((notification) => !notification.is_read).length);
       }
     } catch (err) {
       console.error("Error cargando notificaciones:", err);
@@ -210,16 +246,59 @@ export const Dashboard = () => {
 
       if (notification.spot_id) {
         navigate(`/single/${notification.spot_id}`);
+      } else if (notification.sender_id) {
+        navigate(`/profile/${notification.sender_id}`);
       }
     } catch (error) {
       console.error("Error opening notification:", error);
     }
   };
 
-const fetchFollowing = async () => {
+  const fetchFollowing = async () => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
+        {
+          headers: {
+            Authorization: `Bearer ${store.token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      const following = Array.isArray(data) ? data : data.following || [];
+
+      setFollowingIds(following.map((user) => Number(user.id)));
+    } catch (err) {
+      console.error("Error cargando following:", err);
+    }
+  };
+
+  const fetchSpots = async () => {
+    try {
+      setLoadingSpots(true);
+
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/spots", {
+        headers: { Authorization: `Bearer ${store.token}` },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSpots(Array.isArray(data) ? data : data.spots || []);
+      }
+    } catch (err) {
+      console.error("Error cargando spots:", err);
+    } finally {
+      setLoadingSpots(false);
+    }
+  };
+
+  const fetchTrendingSpots = async () => {
   try {
+
     const response = await fetch(
-      import.meta.env.VITE_BACKEND_URL + "api/users/me/following",
+      import.meta.env.VITE_BACKEND_URL + "api/spots/trending",
       {
         headers: {
           Authorization: `Bearer ${store.token}`,
@@ -229,49 +308,88 @@ const fetchFollowing = async () => {
 
     const data = await response.json();
 
-    const following = Array.isArray(data)
-      ? data
-      : data.following || [];
-
-    setFollowingIds(following.map((user) => user.id));
-
+    if (response.ok) {
+      setTrendingSpots(Array.isArray(data) ? data : []);
+    }
   } catch (err) {
-    console.error("Error cargando following:", err);
+    console.error("Error cargando trending spots:", err);
   }
 };
 
-  const fetchSpots = async () => {
-    try {
-      const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/spots", {
-        headers: { Authorization: `Bearer ${store.token}` },
-      });
+ const fetchUsers = async () => {
+  try {
+    const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/users", {
+      headers: { Authorization: `Bearer ${store.token}` },
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-          console.log("FIRST SPOT USER:", (data.spots || data)[0]?.user);
-          
-      if (response.ok) {
-        setSpots(data.spots || data);
-      }
-    } catch (err) {
-      console.error("Error cargando spots:", err);
+    if (response.ok) {
+      setUsers(Array.isArray(data) ? data : []);
     }
+  } catch (err) {
+    console.error("Error cargando usuarios:", err);
+  }
+};
+
+  const updateSpotLikeState = (spotId, liked, likes) => {
+    setSpots((prevSpots) =>
+      prevSpots.map((spot) =>
+        spot.id === spotId
+          ? {
+            ...spot,
+            liked,
+            is_liked: liked,
+            likes,
+            likes_count: likes,
+          }
+          : spot
+      )
+    );
+
+    setTrendingSpots((prevSpots) =>
+      prevSpots.map((spot) =>
+        spot.id === spotId
+          ? {
+            ...spot,
+            liked,
+            is_liked: liked,
+            likes,
+            likes_count: likes,
+          }
+          : spot
+      )
+    );
   };
 
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch(import.meta.env.VITE_BACKEND_URL + "api/users", {
-        headers: { Authorization: `Bearer ${store.token}` },
-      });
+  const updateSpotFavoriteState = (spotId, saved, favorites) => {
+    setSpots((prevSpots) =>
+      prevSpots.map((spot) =>
+        spot.id === spotId
+          ? {
+            ...spot,
+            saved,
+            is_favorite: saved,
+            favorites,
+            favorites_count: favorites,
+          }
+          : spot
+      )
+    );
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setUsers(data);
-      }
-    } catch (err) {
-      console.error("Error cargando usuarios:", err);
-    }
+    setTrendingSpots((prevSpots) =>
+      prevSpots.map((spot) =>
+        spot.id === spotId
+          ? {
+            ...spot,
+            saved,
+            is_favorite: saved,
+            favorites,
+            favorites_count: favorites,
+          }
+          : spot
+      )
+    );
   };
 
   const toggleLike = async (spotId) => {
@@ -286,23 +404,16 @@ const fetchFollowing = async () => {
 
       const data = await response.json();
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        toast.error(data.msg || "Error liking spot");
+        return;
+      }
 
-      setSpots((prevSpots) =>
-        prevSpots.map((spot) =>
-          spot.id === spotId
-            ? {
-                ...spot,
-                liked: data.liked,
-                is_liked: data.liked,
-                likes: data.likes,
-                likes_count: data.likes,
-              }
-            : spot
-        )
-      );
+      updateSpotLikeState(spotId, data.liked, data.likes);
+      fetchTrendingSpots();
     } catch (err) {
       console.error("Network error liking spot", err);
+      toast.error("Network error liking spot");
     }
   };
 
@@ -318,28 +429,22 @@ const fetchFollowing = async () => {
 
       const data = await response.json();
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        toast.error(data.msg || "Error saving spot");
+        return;
+      }
 
-      setSpots((prevSpots) =>
-        prevSpots.map((spot) =>
-          spot.id === spotId
-            ? {
-                ...spot,
-                saved: data.saved,
-                is_favorite: data.saved,
-                favorites: data.favorites,
-                favorites_count: data.favorites,
-              }
-            : spot
-        )
-      );
+      updateSpotFavoriteState(spotId, data.saved, data.favorites);
+      fetchTrendingSpots();
     } catch (err) {
       console.error("Network error saving spot", err);
+      toast.error("Network error saving spot");
     }
   };
 
   const handleSpotCreated = (newSpot) => {
     setSpots((prev) => [newSpot, ...prev]);
+    fetchTrendingSpots();
   };
 
   const openDeleteConfirm = (spotId) => {
@@ -361,6 +466,9 @@ const fetchFollowing = async () => {
 
       if (response.ok) {
         setSpots((prev) => prev.filter((spot) => spot.id !== spotToDelete));
+        setTrendingSpots((prev) =>
+          prev.filter((spot) => spot.id !== spotToDelete)
+        );
         toast.success("Spot deleted");
         setShowConfirmDelete(false);
         setSpotToDelete(null);
@@ -397,9 +505,15 @@ const fetchFollowing = async () => {
 
       if (response.ok) {
         if (data.is_following) {
-          setFollowingIds((prev) => [...prev, targetUserId]);
+          setFollowingIds((prev) =>
+            prev.includes(Number(targetUserId))
+              ? prev
+              : [...prev, Number(targetUserId)]
+          );
         } else {
-          setFollowingIds((prev) => prev.filter((id) => id !== targetUserId));
+          setFollowingIds((prev) =>
+            prev.filter((id) => Number(id) !== Number(targetUserId))
+          );
         }
       } else {
         toast.error(data.msg || "Error updating follow");
@@ -560,9 +674,8 @@ const fetchFollowing = async () => {
                     notifications.slice(0, 5).map((notification) => (
                       <div
                         key={notification.id}
-                        className={`notifications-dropdown-item ${
-                          notification.is_read ? "read" : "unread"
-                        }`}
+                        className={`notifications-dropdown-item ${notification.is_read ? "read" : "unread"
+                          }`}
                         onClick={() => handleNotificationClick(notification)}
                         style={{ cursor: "pointer" }}
                       >
@@ -588,9 +701,14 @@ const fetchFollowing = async () => {
               )}
             </div>
 
-            <img src={getAvatar(store.user)} alt="User" />
+            <img
+              src={getAvatar(store.user)}
+              alt="User"
+              onClick={() => navigate("/profile")}
+              style={{ cursor: "pointer" }}
+            />
 
-            <div>
+            <div onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
               <strong>
                 {store.user?.nombre} {store.user?.apellido}
               </strong>
@@ -599,7 +717,7 @@ const fetchFollowing = async () => {
         </header>
 
         <section className="create-post-card">
-          <div>
+          <div onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
             <img src={getAvatar(store.user)} alt="User" />
           </div>
 
@@ -609,7 +727,8 @@ const fetchFollowing = async () => {
         </section>
 
         <section className="feed">
-          {spots.length === 0 && !activeSearch && (
+          {loadingSpots && <FeedSkeleton />}
+         {!loadingSpots && spots.length === 0 && !activeSearch && (
             <div className="spot-post">
               <p style={{ textAlign: "center", color: "#aaa", padding: "1rem" }}>
                 No spots yet. Be the first to post!
@@ -617,7 +736,7 @@ const fetchFollowing = async () => {
             </div>
           )}
 
-          {filteredSpots.length === 0 && activeSearch && (
+          {!loadingSpots && filteredSpots.length === 0 && activeSearch && (
             <div className="spot-post">
               <p>
                 No spots found for: <strong>{activeSearch}</strong>
@@ -625,12 +744,20 @@ const fetchFollowing = async () => {
             </div>
           )}
 
-          {filteredSpots.map((spot) => (
+          {!loadingSpots && filteredSpots.map((spot) => (
             <article className="spot-post" key={spot.id}>
               <div className="post-header">
-                <img src={getAvatar(spot.user)} alt={spot.user?.nombre || "User"} />
+                <img
+                  src={getAvatar(spot.user)}
+                  alt={spot.user?.nombre || "User"}
+                  onClick={() => spot.user?.id && navigate(`/profile/${spot.user.id}`)}
+                  style={{ cursor: spot.user?.id ? "pointer" : "default" }}
+                />
 
-                <div>
+                <div
+                  onClick={() => spot.user?.id && navigate(`/profile/${spot.user.id}`)}
+                  style={{ cursor: spot.user?.id ? "pointer" : "default" }}
+                >
                   <strong>
                     {spot.user?.nombre} {spot.user?.apellido}
                   </strong>
@@ -661,7 +788,9 @@ const fetchFollowing = async () => {
                 )}
               </div>
 
-              <p className="post-text">{spot.descripcion}</p>
+              {spot.titulo && <h3 className="post-title">{spot.titulo}</h3>}
+
+              {spot.descripcion && <p className="post-text">{spot.descripcion}</p>}
 
               {spot.latitude != null && spot.longitude != null && (
                 <a
@@ -687,43 +816,39 @@ const fetchFollowing = async () => {
               <ImageCarousel images={spot.images || []} titulo={spot.titulo} />
 
               <div className="post-actions">
-                <button className="like-btn" onClick={() => toggleLike(spot.id)}>
+                <button className="post-action-pill" onClick={() => toggleLike(spot.id)}>
                   <Heart
-                    size={20}
+                    size={19}
                     fill={spot.liked || spot.is_liked ? "#ef3340" : "none"}
                     color={spot.liked || spot.is_liked ? "#ef3340" : "currentColor"}
                   />
-                  {spot.likes_count ?? spot.likes ?? 0}
+                  <span>{spot.likes_count ?? spot.likes ?? 0}</span>
                 </button>
 
                 <button
+                  className="post-action-pill"
                   onClick={() => toggleComments(spot.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    color: "inherit",
-                    padding: 0,
-                  }}
                 >
-                  <MessageCircle size={20} />
+                  <MessageCircle size={19} />
+                  <span>{spot.comments_count ?? 0}</span>
                 </button>
 
-                <button className="like-btn" onClick={() => openShareModal(spot)}>
-                  <Share2 size={20} />
-                </button>
-
-                <button className="like-btn" onClick={() => toggleFavorite(spot.id)}>
+                <button className="post-action-pill" onClick={() => toggleFavorite(spot.id)}>
                   <Bookmark
-                    size={20}
-                    fill={spot.saved || spot.is_favorite ? "#ff5a5f" : "none"}
-                    color={
-                      spot.saved || spot.is_favorite ? "#ff5a5f" : "currentColor"
-                    }
+                    size={19}
+                    fill={spot.saved || spot.is_favorite ? "#ef3340" : "none"}
+                    color={spot.saved || spot.is_favorite ? "#ef3340" : "currentColor"}
                   />
-                  {spot.favorites_count ?? spot.favorites ?? 0}
+                  <span>{spot.favorites_count ?? spot.favorites ?? 0}</span>
+                </button>
+
+                <button className="post-action-pill" onClick={() => openShareModal(spot)}>
+                  <Share2 size={19} />
+                  <span>Share</span>
+                </button>
+
+                <button className="post-view-btn" onClick={() => setViewSpot(spot)}>
+                  View spot
                 </button>
               </div>
 
@@ -737,67 +862,99 @@ const fetchFollowing = async () => {
 
       <aside className="dashboard-rightbar">
         <div className="right-card">
+  <div className="card-title">
+    <h3>Suggested for you</h3>
+    <span>All</span>
+  </div>
+
+  
+    {users.length > 0 ? (
+    users.slice(0, 5).map((user) => (
+      <div className="suggestion" key={user.id}>
+        <img
+          src={getAvatar(user)}
+          alt={user.nombre || "User"}
+          onClick={() => navigate(`/profile/${user.id}`)}
+          style={{ cursor: "pointer" }}
+        />
+
+        <div
+          onClick={() => navigate(`/profile/${user.id}`)}
+          style={{ cursor: "pointer", flex: 1 }}
+        >
+          <strong>
+            {user.nombre} {user.apellido}
+          </strong>
+          <p>Spotly user</p>
+        </div>
+
+        <FollowButton
+          userId={user.id}
+          isFollowing={followingIds.includes(Number(user.id))}
+          isLoading={Number(loadingId) === Number(user.id)}
+          onToggle={handleFollowToggle}
+        />
+      </div>
+    ))
+  ) : (
+    <p style={{ fontSize: "0.85rem", color: "#aaa", padding: "0.5rem 0" }}>
+      No other users yet.
+    </p>
+  )}
+</div>
+
+        <div className="right-card">
           <div className="card-title">
-            <h3>Suggested for you</h3>
-            <span>All</span>
+            <h3>Trending spots</h3>
+            <span onClick={() => navigate("/explore")} style={{ cursor: "pointer" }}>
+              Live trending
+            </span>
           </div>
 
-          {users.slice(0, 5).map((user) => (
-            <div className="suggestion" key={user.id}>
-              <img src={getAvatar(user)} alt={user.nombre || "User"} />
-
+          {trendingSpots.length > 0 ? (
+            trendingSpots.map((spot, index) => (
               <div
-                onClick={() => navigate(`/profile/${user.id}`)}
-                style={{ cursor: "pointer", flex: 1 }}
+                className="trend"
+                key={spot.id}
+                onClick={() => navigate(`/single/${spot.id}`)}
+                style={{ cursor: "pointer" }}
               >
-                <strong>
-                  {user.nombre} {user.apellido}
-                </strong>
-                <p>Spotly user</p>
+                <span>{index + 1}</span>
+
+                <div>
+                  <strong>{spot.titulo || "Untitled Spot"}</strong>
+                  <p>
+                    🔥 {spot.trending_score ?? 0} points
+                  </p>
+
+                  <p>
+                    {spot.likes ?? 0} likes ·
+                    {spot.favorites ?? 0} saves ·
+                    {spot.comments_count ?? 0} comments
+                  </p>
+                </div>
               </div>
-
-              <FollowButton
-                userId={user.id}
-                isFollowing={followingIds.includes(user.id)}
-                isLoading={loadingId === user.id}
-                onToggle={handleFollowToggle}
-              />
-            </div>
-          ))}
-
-          {users.length === 0 && (
+            ))
+          ) : (
             <p style={{ fontSize: "0.85rem", color: "#aaa", padding: "0.5rem 0" }}>
-              No other users yet.
+              No trending spots yet.
             </p>
           )}
         </div>
 
         <div className="right-card">
           <div className="card-title">
-            <h3>Trending spots</h3>
-            <span>See more...</span>
-          </div>
-
-          {["Rooftops", "Murals", "Parks", "Sports", "Beaches"].map(
-            (trend, index) => (
-              <div className="trend" key={index}>
-                <span>{index + 1}</span>
-                <div>
-                  <strong>{trend}</strong>
-                  <p>{12 - index * 2}.4K posts</p>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-
-        <div className="right-card">
-          <div className="card-title">
             <h3>Spots map</h3>
-            <span>Full map</span>
+            <span onClick={() => navigate("/explore")} style={{ cursor: "pointer" }}>
+              Full map
+            </span>
           </div>
 
-          <div className="fake-map">
+          <div
+            className="fake-map"
+            onClick={() => navigate("/explore")}
+            style={{ cursor: "pointer" }}
+          >
             <MapPin />
             <MapPin />
             <MapPin />
@@ -877,7 +1034,10 @@ const fetchFollowing = async () => {
           setSpotToDelete(null);
         }}
       />
-
+      <SpotDetailsModal
+        spot={viewSpot}
+        onClose={() => setViewSpot(null)}
+      />
       <SpotModal
         isOpen={showSpot}
         onClose={() => setShowSpot(false)}

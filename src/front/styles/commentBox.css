@@ -28,7 +28,7 @@
 
 .comment-box__list {
     max-height: 360px;
-    overflow-y: auto;
+    overflow-y: overlay;
     padding: 18px;
     background: #ffffff;
 }

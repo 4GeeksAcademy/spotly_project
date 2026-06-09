@@ -1,9 +1,7 @@
 from flask import request, jsonify, Blueprint
-from api.models import db, User, Spot, SpotImage, Category, Like, Comment, Favorite, Rating, View, Notification
+from api.models import db, User, Spot, SpotImage, Category, Like, Comment, Favorite, Rating, View, Notification, Follow
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from .models import db, Follow, User, Notification
-
 import os
 import cloudinary
 import cloudinary.uploader
@@ -568,6 +566,37 @@ def mark_all_notifications_as_read():
 
     return jsonify({"msg": "Notificaciones marcadas como leídas"}), 200
 
+@api.route("/spots/trending", methods=["GET"])
+@jwt_required()
+def get_trending_spots():
+    current_user_id = int(get_jwt_identity())
+
+    spots = Spot.query.all()
+
+    trending = []
+
+    for spot in spots:
+        likes_count = Like.query.filter_by(spot_id=spot.id).count()
+        favorites_count = Favorite.query.filter_by(spot_id=spot.id).count()
+        comments_count = Comment.query.filter_by(
+            spot_id=spot.id,
+            parent_id=None
+        ).count()
+
+        score = (likes_count * 3) + (favorites_count * 2) + comments_count
+
+        spot_data = _serialize_spot(spot, current_user_id)
+        spot_data["trending_score"] = score
+
+        trending.append(spot_data)
+
+    trending = sorted(
+        trending,
+        key=lambda spot: spot["trending_score"],
+        reverse=True
+    )
+
+    return jsonify(trending[:5]), 200
 
 def _serialize_spot(spot, current_user_id=None):
     lat, lng = None, None
@@ -753,9 +782,48 @@ def get_user_by_id(user_id):
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
 
+    return jsonify(user.serialize_public()), 200
+
+
+@api.route("/users/<int:user_id>/public-profile", methods=["GET"])
+@jwt_required()
+def get_public_profile(user_id):
+    current_user_id = int(get_jwt_identity())
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    spots = Spot.query.filter_by(user_id=user_id).order_by(Spot.created_at.desc()).all()
+
+    followers_count = Follow.query.filter_by(followed_id=user_id).count()
+    following_count = Follow.query.filter_by(follower_id=user_id).count()
+
+    total_likes = sum(
+        Like.query.filter_by(spot_id=spot.id).count()
+        for spot in spots
+    )
+
+    total_favorites = sum(
+        Favorite.query.filter_by(spot_id=spot.id).count()
+        for spot in spots
+    )
+
+    is_following = Follow.query.filter_by(
+        follower_id=current_user_id,
+        followed_id=user_id
+    ).first() is not None
+
     return jsonify({
-        "id": user.id,
-        "nombre": user.nombre,
-        "apellido": user.apellido,
-        "tipo_usuario": user.tipo_usuario,
+        "user": user.serialize_public(),
+        "spots": [_serialize_spot(spot, current_user_id) for spot in spots],
+        "stats": {
+            "total_spots": len(spots),
+            "followers": followers_count,
+            "following": following_count,
+            "total_likes": total_likes,
+            "total_favorites": total_favorites,
+            "is_following": is_following,
+        }
     }), 200
