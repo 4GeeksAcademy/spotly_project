@@ -6,4 +6,3 @@ npm install
 npm run build
 pip install pipenv
 pipenv install --deploy
-pip install -r requirements.txt
